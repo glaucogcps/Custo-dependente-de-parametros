@@ -1,45 +1,46 @@
 function pontos_simplex = particao_simplex(num_dimensoes, passo)
-% particao_simplex Gera pontos de um simplex unit·rio com uma dada granularidade.
+% particao_simplex Gera pontos de um simplex unit√°rio com uma dada granularidade.
+% Algoritmo 3
 %
 %   pontos_simplex = particao_simplex(num_dimensoes, passo)
 %
-%   Esta funÁ„o gera um conjunto de pontos que representam uma partiÁ„o
-%   discreta de um simplex unit·rio (onde a soma das coordenadas È 1).
-%   A granularidade da partiÁ„o È definida pelo 'passo'.
+%   Esta fun√ß√£o gera um conjunto de pontos que representam uma parti√ß√£o
+%   discreta de um simplex unit√°rio (onde a soma das coordenadas √© 1).
+%   A granularidade da parti√ß√£o √© definida pelo 'passo'.
 %
 %   Entradas:
-%     num_dimensoes - N˙mero de dimensıes do simplex (inteiro positivo).
-%     passo         - O tamanho do passo para a discretizaÁ„o das coordenadas
-%                     (n˙mero positivo, e.g., 0.1, 0.05).
+%     num_dimensoes - N√∫mero de dimens√µes do simplex (inteiro positivo).
+%     passo         - O tamanho do passo para a discretiza√ß√£o das coordenadas
+%                     (n√∫mero positivo, e.g., 0.1, 0.05).
 %
-%   SaÌda:
-%     pontos_simplex - Um cell array, onde cada cÈlula contÈm um vetor coluna
+%   Sa√≠da:
+%     pontos_simplex - Um cell array, onde cada c√©lula cont√©m um vetor coluna
 %                      representando um ponto no simplex.
 %
-%   OtimizaÁ„o: A funÁ„o verifica se um arquivo de cache (.mat) j· existe
-%   para a combinaÁ„o especÌfica de 'num_dimensoes' e 'passo'. Se existir,
-%   carrega os dados do arquivo para evitar rec·lculos. Caso contr·rio,
-%   realiza o c·lculo completo e salva o resultado para uso futuro.
+%   Otimiza√ß√£o: A fun√ß√£o verifica se um arquivo de cache (.mat) j√° existe
+%   para a combina√ß√£o espec√≠fica de 'num_dimensoes' e 'passo'. Se existir,
+%   carrega os dados do arquivo para evitar rec√°lculos. Caso contr√°rio,
+%   realiza o c√°lculo completo e salva o resultado para uso futuro.
 %
-%   Esta vers„o utiliza um algoritmo ITERATIVO para otimizar o consumo de
-%   memÛria e tempo em comparaÁ„o com a vers„o recursiva.
+%   Esta vers√£o utiliza um algoritmo ITERATIVO para otimizar o consumo de
+%   mem√≥ria e tempo em compara√ß√£o com a vers√£o recursiva.
 % Date: 25/09/2025
 % Autor: glauco.gcps@gmail.com
 
-% ValidaÁ„o de entrada
+% Valida√ß√£o de entrada
 if nargin < 2
-    error('particao_simplex:NotEnoughInputs', 'S„o necess·rios num_dimensoes e passo.');
+    error('particao_simplex:NotEnoughInputs', 'S√£o necess√°rios num_dimensoes e passo.');
 end
 if ~isnumeric(num_dimensoes) || num_dimensoes < 1 || mod(num_dimensoes, 1) ~= 0
     error('particao_simplex:InvalidDims', 'num_dimensoes deve ser um inteiro positivo.');
 end
 if ~isnumeric(passo) || passo <= 0
-    error('particao_simplex:InvalidStep', 'passo deve ser um n˙mero positivo.');
+    error('particao_simplex:InvalidStep', 'passo deve ser um n√∫mero positivo.');
 end
 
-%   GeraÁ„o do nome do arquivo de cache  
+%   Gera√ß√£o do nome do arquivo de cache  
 % Converte 'passo' para string, substituindo o ponto decimal por 'p' para o nome do arquivo
-% Usamos '%.10f' para garantir precis„o suficiente na representaÁ„o do passo no nome do arquivo.
+% Usamos '%.10f' para garantir precis√£o suficiente na representa√ß√£o do passo no nome do arquivo.
 passo_str = strrep(num2str(passo, '%.10f'), '.', 'p'); 
 filename = sprintf('alfas_simplex_dimensao_%d_passo_%s.mat', num_dimensoes, passo_str);
 
@@ -47,55 +48,55 @@ filename = sprintf('alfas_simplex_dimensao_%d_passo_%s.mat', num_dimensoes, pass
 if exist(filename, 'file') == 2
     fprintf('Arquivo de cache "%s" encontrado. Carregando dados...\n', filename);
     
-    % Carrega o arquivo MAT para uma estrutura tempor·ria
+    % Carrega o arquivo MAT para uma estrutura tempor√°ria
     temp_data = load(filename); 
     
-    % Verifica se a vari·vel esperada existe na estrutura
+    % Verifica se a vari√°vel esperada existe na estrutura
     if isfield(temp_data, 'pontos_simplex_saved')
         pontos_simplex = temp_data.pontos_simplex_saved; 
         fprintf('Dados carregados com sucesso do cache.\n');
         return; 
     else
-        fprintf('AVISO: Vari·vel "pontos_simplex_saved" n„o encontrada no cache. Recalculando...\n');
-        % Se a vari·vel n„o for encontrada, o cÛdigo continua para recalcular
+        fprintf('AVISO: Vari√°vel "pontos_simplex_saved" n√£o encontrada no cache. Recalculando...\n');
+        % Se a vari√°vel n√£o for encontrada, o c√≥digo continua para recalcular
     end
 else
-    fprintf('Arquivo de cache "%s" n„o encontrado. Realizando c·lculo (ITERATIVO)...\n', filename);
+    fprintf('Arquivo de cache "%s" n√£o encontrado. Realizando c√°lculo (ITERATIVO)...\n', filename);
 end
 
-%   InÌcio do C·lculo Iterativo (se o arquivo de cache n„o foi encontrado)  
+%   In√≠cio do C√°lculo Iterativo (se o arquivo de cache n√£o foi encontrado)  
 
 soma_total = 1;
-tolerance_float = 1e-9; % Toler‚ncia para operaÁıes de ponto flutuante
+tolerance_float = 1e-9; % Toler√¢ncia para opera√ß√µes de ponto flutuante
 
-% current_level_points armazena cÈlulas no formato {vetor_prefixo, soma_restante}
-% ComeÁamos com um prefixo vazio e a soma total restante
+% current_level_points armazena c√©lulas no formato {vetor_prefixo, soma_restante}
+% Come√ßamos com um prefixo vazio e a soma total restante
 current_level_points = {{[], soma_total}}; 
 
-% Itera sobre cada dimens„o para construir os pontos
+% Itera sobre cada dimens√£o para construir os pontos
 for dim_idx = 1:num_dimensoes
-    next_level_points = {}; % Lista para os pontos da prÛxima dimens„o
+    next_level_points = {}; % Lista para os pontos da pr√≥xima dimens√£o
     
     for k = 1:length(current_level_points)
         partial_vec = current_level_points{k}{1};
         remaining_sum = current_level_points{k}{2};
         
-        % Se for a ˙ltima dimens„o, o valor È fixo (a soma restante)
+        % Se for a √∫ltima dimens√£o, o valor √© fixo (a soma restante)
         if dim_idx == num_dimensoes
             val = remaining_sum;
-            val = round(val / passo) * passo; % Arredonda para m˙ltiplo do passo
+            val = round(val / passo) * passo; % Arredonda para m√∫ltiplo do passo
             
             % Trata valores negativos ou muito pequenos como zero
             if val < 0, val = 0; end
             if abs(val) < tolerance_float, val = 0; end
             
             new_point = [partial_vec; val];
-            next_level_points{end+1} = {new_point, 0}; % A soma restante È 0
+            next_level_points{end+1} = {new_point, 0}; % A soma restante √© 0
         else
-            % Itera sobre os possÌveis valores para a dimens„o atual
-            % Adiciona passo/2 para garantir que 'remaining_sum' seja incluÌdo no loop
+            % Itera sobre os poss√≠veis valores para a dimens√£o atual
+            % Adiciona passo/2 para garantir que 'remaining_sum' seja inclu√≠do no loop
             for val = 0:passo:remaining_sum + passo/2 
-                val = round(val / passo) * passo; % Arredonda para m˙ltiplo do passo
+                val = round(val / passo) * passo; % Arredonda para m√∫ltiplo do passo
                 
                 % Trata valores negativos ou muito pequenos como zero
                 if val < 0, val = 0; end
@@ -111,25 +112,25 @@ for dim_idx = 1:num_dimensoes
             end
         end
     end
-    current_level_points = next_level_points; % Atualiza para a prÛxima iteraÁ„o
+    current_level_points = next_level_points; % Atualiza para a pr√≥xima itera√ß√£o
 end
 
-%   PÛs-processamento: Extrair pontos finais, aplicar correÁ„o de soma, filtrar e remover duplicatas  
+%   P√≥s-processamento: Extrair pontos finais, aplicar corre√ß√£o de soma, filtrar e remover duplicatas  
 final_points_matrix_rows = [];
-tolerance_sum_check = 1e-9; % Toler‚ncia para verificar a soma final
+tolerance_sum_check = 1e-9; % Toler√¢ncia para verificar a soma final
 
 for k = 1:length(current_level_points)
-    full_point_vec = current_level_points{k}{1}; % O vetor completo de N dimensıes
+    full_point_vec = current_level_points{k}{1}; % O vetor completo de N dimens√µes
     
-    % Aplica a correÁ„o crucial para garantir que a soma seja exatamente 1
-    % Isso È vital para a precis„o e para evitar duplicatas por erro de ponto flutuante
+    % Aplica a corre√ß√£o crucial para garantir que a soma seja exatamente 1
+    % Isso √© vital para a precis√£o e para evitar duplicatas por erro de ponto flutuante
     sum_of_first_n_minus_1_dims = sum(full_point_vec(1:end-1));
     full_point_vec(end) = soma_total - sum_of_first_n_minus_1_dims;
     
-    % Arredonda novamente todos os elementos para garantir que s„o m˙ltiplos de 'passo'
+    % Arredonda novamente todos os elementos para garantir que s√£o m√∫ltiplos de 'passo'
     full_point_vec = round(full_point_vec / passo) * passo;
 
-    % Verifica se a soma do ponto (apÛs o ajuste) est· dentro da toler‚ncia esperada
+    % Verifica se a soma do ponto (ap√≥s o ajuste) est√° dentro da toler√¢ncia esperada
     if abs(sum(full_point_vec) - soma_total) < tolerance_sum_check
         final_points_matrix_rows = [final_points_matrix_rows; full_point_vec']; 
     end
@@ -139,7 +140,7 @@ end
 if ~isempty(final_points_matrix_rows)
     unique_matrix_points_rows = unique(final_points_matrix_rows, 'rows');
     
-    % Converte de volta para cell array de vetores COLUNA (formato de saÌda desejado)
+    % Converte de volta para cell array de vetores COLUNA (formato de sa√≠da desejado)
     pontos_simplex = cell(1, size(unique_matrix_points_rows, 1)); 
     for k = 1:size(unique_matrix_points_rows, 1)
         pontos_simplex{k} = unique_matrix_points_rows(k, :)'; 
@@ -149,7 +150,7 @@ else
 end
 
 %   Salva o resultado no arquivo de cache para uso futuro  
-% Garante que apenas a vari·vel 'pontos_simplex_saved' seja salva
+% Garante que apenas a vari√°vel 'pontos_simplex_saved' seja salva
 pontos_simplex_saved = pontos_simplex; 
 save(filename, 'pontos_simplex_saved'); 
 fprintf('Resultado calculado e salvo em "%s".\n', filename);
