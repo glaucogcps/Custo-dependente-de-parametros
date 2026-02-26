@@ -1,6 +1,6 @@
 function all_points = generate_simplex_points_recursivo(current_sum, remaining_dims, step_size, current_prefix)
 % Algoritmo 1
-
+%
 % Inicializa a lista de pontos a serem retornados
 all_points = {}; 
 
@@ -68,3 +68,4 @@ end
 
 
 end
+
