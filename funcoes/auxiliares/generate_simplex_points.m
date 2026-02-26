@@ -1,27 +1,28 @@
 function all_points = generate_simplex_points(current_sum, remaining_dims, step_size, current_prefix)
 % function all_points = generate_simplex_points(current_sum, remaining_dims, step_size, current_prefix)
+% Algoritmo 2
 %
-% FunÁ„o auxiliar recursiva para gerar todos os pontos discretos em um simplex unit·rio.
-% Os pontos s„o gerados de forma que a soma de suas coordenadas seja igual a 1,
-% com cada coordenada sendo um m˙ltiplo de 'step_size'.
+% Fun√ß√£o auxiliar recursiva para gerar todos os pontos discretos em um simplex unit√°rio.
+% Os pontos s√£o gerados de forma que a soma de suas coordenadas seja igual a 1,
+% com cada coordenada sendo um m√∫ltiplo de 'step_size'.
 %
-% Esta funÁ„o È tipicamente chamada por uma funÁ„o wrapper (como 'particao_simplex')
+% Esta fun√ß√£o √© tipicamente chamada por uma fun√ß√£o wrapper (como 'particao_simplex')
 % que inicializa 'current_sum' como 1 e 'current_prefix' como vazio.
 %
 % input:
-%   current_sum    -> Scalar numÈrico. A soma que as 'remaining_dims' devem totalizar.
-%                     Na chamada inicial para um simplex unit·rio, este valor È 1.
-%   remaining_dims -> Scalar inteiro. O n˙mero de dimensıes restantes a serem preenchidas
+%   current_sum    -> Scalar num√©rico. A soma que as 'remaining_dims' devem totalizar.
+%                     Na chamada inicial para um simplex unit√°rio, este valor √© 1.
+%   remaining_dims -> Scalar inteiro. O n√∫mero de dimens√µes restantes a serem preenchidas
 %                     para formar um ponto completo no simplex.
-%   step_size      -> Scalar numÈrico. O incremento entre os valores possÌveis para cada
-%                     coordenada. Define a "malha" de discretizaÁ„o do simplex.
-%   current_prefix -> Vetor coluna numÈrico. O prefixo parcial do ponto do simplex
-%                     que est· sendo construÌdo. ContÈm os valores j· determinados
-%                     para as dimensıes anteriores.
+%   step_size      -> Scalar num√©rico. O incremento entre os valores poss√≠veis para cada
+%                     coordenada. Define a "malha" de discretiza√ß√£o do simplex.
+%   current_prefix -> Vetor coluna num√©rico. O prefixo parcial do ponto do simplex
+%                     que est√° sendo constru√≠do. Cont√©m os valores j√° determinados
+%                     para as dimens√µes anteriores.
 %
 % output:
-%   all_points     -> Cell array. Cada cÈlula contÈm um vetor coluna numÈrico que
-%                     representa um ponto completo no simplex unit·rio.
+%   all_points     -> Cell array. Cada c√©lula cont√©m um vetor coluna num√©rico que
+%                     representa um ponto completo no simplex unit√°rio.
 %                     Ex: {[alpha1; alpha2; ...; alphaN], [beta1; beta2; ...; betaN], ...}
 %
 % Date: 25/09/2025
@@ -30,69 +31,69 @@ function all_points = generate_simplex_points(current_sum, remaining_dims, step_
 % Inicializa a lista de pontos a serem retornados
 all_points = {}; 
 
-% Caso Base: Se resta apenas 1 dimens„o para preencher
+% Caso Base: Se resta apenas 1 dimens√£o para preencher
 if remaining_dims == 1
-    % A ˙ltima dimens„o deve ser igual ‡ soma restante
+    % A √∫ltima dimens√£o deve ser igual √† soma restante
     % Arredondar para lidar com erros de ponto flutuante, garantindo que o valor
-    % seja um m˙ltiplo exato de step_size.
+    % seja um m√∫ltiplo exato de step_size.
     last_val = round(current_sum / step_size) * step_size; 
     
-    % Garante que o valor n„o seja negativo devido a erros de ponto flutuante
+    % Garante que o valor n√£o seja negativo devido a erros de ponto flutuante
     if last_val < 0 
         last_val = 0; 
     end
 
-    % Se o valor final È muito prÛximo de zero, considere-o zero
-    if abs(last_val) < 1e-9 % Toler‚ncia para zero
+    % Se o valor final √© muito pr√≥ximo de zero, considere-o zero
+    if abs(last_val) < 1e-9 % Toler√¢ncia para zero
         last_val = 0;
     end
 
-    % Se o valor final È muito prÛximo da soma restante, considere-o a soma
+    % Se o valor final √© muito pr√≥ximo da soma restante, considere-o a soma
     if abs(last_val - current_sum) < 1e-9
         last_val = current_sum;
     end
 
-    % Adiciona o ponto completo (prefixo + ˙ltimo valor) como um VETOR COLUNA
+    % Adiciona o ponto completo (prefixo + √∫ltimo valor) como um VETOR COLUNA
     all_points{1} = [current_prefix; last_val]; 
     return;
 end
 
-% Passo Recursivo: Itera sobre os possÌveis valores para a prÛxima dimens„o
-% O valor pode ir de 0 atÈ current_sum, em passos de step_size.
-% Uma pequena toler‚ncia (step_size/2) È adicionada ao limite superior do loop
-% para garantir a inclus„o do 'current_sum' devido a possÌveis imprecisıes de ponto flutuante.
+% Passo Recursivo: Itera sobre os poss√≠veis valores para a pr√≥xima dimens√£o
+% O valor pode ir de 0 at√© current_sum, em passos de step_size.
+% Uma pequena toler√¢ncia (step_size/2) √© adicionada ao limite superior do loop
+% para garantir a inclus√£o do 'current_sum' devido a poss√≠veis imprecis√µes de ponto flutuante.
 for val = 0:step_size:current_sum + step_size/2 
     
-    % Arredonda o valor para o m˙ltiplo mais prÛximo de step_size para corrigir
+    % Arredonda o valor para o m√∫ltiplo mais pr√≥ximo de step_size para corrigir
     % eventuais erros de ponto flutuante acumulados.
     val = round(val / step_size) * step_size;
     
-    % Garante que o valor n„o seja negativo devido a erros de ponto flutuante
+    % Garante que o valor n√£o seja negativo devido a erros de ponto flutuante
     if val < 0
         val = 0;
     end
 
-    % Se o valor È muito prÛximo de zero, considere-o zero
+    % Se o valor √© muito pr√≥ximo de zero, considere-o zero
     if abs(val) < 1e-9
         val = 0;
     end
 
-    % Se o valor È maior que a soma restante, n„o È v·lido para esta ramificaÁ„o.
-    % Uma pequena toler‚ncia (1e-9) È usada para comparaÁ„o.
+    % Se o valor √© maior que a soma restante, n√£o √© v√°lido para esta ramifica√ß√£o.
+    % Uma pequena toler√¢ncia (1e-9) √© usada para compara√ß√£o.
     if val > current_sum + 1e-9 
         continue; 
     end
 
-    % Calcula a soma restante para as prÛximas dimensıes
+    % Calcula a soma restante para as pr√≥ximas dimens√µes
     next_sum = current_sum - val;
     
-    % ConstrÛi o novo prefixo para a prÛxima chamada recursiva como um VETOR COLUNA
+    % Constr√≥i o novo prefixo para a pr√≥xima chamada recursiva como um VETOR COLUNA
     new_prefix = [current_prefix; val]; 
     
-    % Chama a funÁ„o recursivamente para as dimensıes restantes
+    % Chama a fun√ß√£o recursivamente para as dimens√µes restantes
     sub_points = generate_simplex_points(next_sum, remaining_dims - 1, step_size, new_prefix);
     
-    % Adiciona os pontos gerados pela chamada recursiva ‡ lista total
+    % Adiciona os pontos gerados pela chamada recursiva √† lista total
     all_points = [all_points, sub_points];
 end
 
