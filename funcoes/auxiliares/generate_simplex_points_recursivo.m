@@ -1,68 +1,70 @@
 function all_points = generate_simplex_points_recursivo(current_sum, remaining_dims, step_size, current_prefix)
+% Algoritmo 1
 
 % Inicializa a lista de pontos a serem retornados
 all_points = {}; 
 
-% Caso Base: Se resta apenas 1 dimens„o para preencher
+% Caso Base: Se resta apenas 1 dimens√£o para preencher
 if remaining_dims == 1
-    % A ˙ltima dimens„o deve ser igual ‡ soma restante
+    % A √∫ltima dimens√£o deve ser igual √† soma restante
     % Arredondar para lidar com erros de ponto flutuante
     last_val = round(current_sum / step_size) * step_size; 
     
-    % Garante que o valor n„o seja negativo devido a erros de ponto flutuante
+    % Garante que o valor n√£o seja negativo devido a erros de ponto flutuante
     if last_val < 0 
         last_val = 0; 
     end
 
-    % Se o valor final È muito prÛximo de zero, considere-o zero
-    if abs(last_val) < 1e-9 % Toler‚ncia para zero
+    % Se o valor final √© muito pr√≥ximo de zero, considere-o zero
+    if abs(last_val) < 1e-9 % Toler√¢ncia para zero
         last_val = 0;
     end
 
-    % Se o valor final È muito prÛximo da soma restante, considere-o a soma
+    % Se o valor final √© muito pr√≥ximo da soma restante, considere-o a soma
     if abs(last_val - current_sum) < 1e-9
         last_val = current_sum;
     end
 
-    % Adiciona o ponto completo (prefixo + ˙ltimo valor) como um VETOR COLUNA
-    all_points{1} = [current_prefix; last_val]; % <--- MUDAN«A: Usando ';' para empilhar verticalmente
+    % Adiciona o ponto completo (prefixo + √∫ltimo valor) como um VETOR COLUNA
+    all_points{1} = [current_prefix; last_val]; % <--- MUDAN√áA: Usando ';' para empilhar verticalmente
     return;
 end
 
-% Passo Recursivo: Itera sobre os possÌveis valores para a prÛxima dimens„o
-% O valor pode ir de 0 atÈ current_sum, em passos de step_size
-% Usamos uma pequena toler‚ncia para o loop for para evitar problemas de ponto flutuante
+% Passo Recursivo: Itera sobre os poss√≠veis valores para a pr√≥xima dimens√£o
+% O valor pode ir de 0 at√© current_sum, em passos de step_size
+% Usamos uma pequena toler√¢ncia para o loop for para evitar problemas de ponto flutuante
 for val = 0:step_size:current_sum + step_size/2 % Adiciona step_size/2 para incluir o current_sum
     
-    % Arredonda o valor para o m˙ltiplo mais prÛximo de step_size
+    % Arredonda o valor para o m√∫ltiplo mais pr√≥ximo de step_size
     val = round(val / step_size) * step_size;
     
-    % Garante que o valor n„o seja negativo devido a erros de ponto flutuante
+    % Garante que o valor n√£o seja negativo devido a erros de ponto flutuante
     if val < 0
         val = 0;
     end
 
-    % Se o valor È muito prÛximo de zero, considere-o zero
+    % Se o valor √© muito pr√≥ximo de zero, considere-o zero
     if abs(val) < 1e-9
         val = 0;
     end
 
-    % Se o valor È maior que a soma restante, n„o È v·lido
-    if val > current_sum + 1e-9 % Toler‚ncia para current_sum
+    % Se o valor √© maior que a soma restante, n√£o √© v√°lido
+    if val > current_sum + 1e-9 % Toler√¢ncia para current_sum
         continue; 
     end
 
-    % Calcula a soma restante para as prÛximas dimensıes
+    % Calcula a soma restante para as pr√≥ximas dimens√µes
     next_sum = current_sum - val;
     
-    % ConstrÛi o novo prefixo para a prÛxima chamada recursiva como um VETOR COLUNA
-    new_prefix = [current_prefix; val]; % <--- MUDAN«A: Usando ';' para empilhar verticalmente
+    % Constr√≥i o novo prefixo para a pr√≥xima chamada recursiva como um VETOR COLUNA
+    new_prefix = [current_prefix; val]; % <--- MUDAN√áA: Usando ';' para empilhar verticalmente
     
-    % Chama a funÁ„o recursivamente para as dimensıes restantes
+    % Chama a fun√ß√£o recursivamente para as dimens√µes restantes
     sub_points = generate_simplex_points(next_sum, remaining_dims - 1, step_size, new_prefix);
     
-    % Adiciona os pontos gerados pela chamada recursiva ‡ lista total
+    % Adiciona os pontos gerados pela chamada recursiva √† lista total
     all_points = [all_points, sub_points];
 end
+
 
 end
