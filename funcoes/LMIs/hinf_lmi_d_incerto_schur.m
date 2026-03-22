@@ -222,8 +222,6 @@ Q = [Q11 Q12 Q13;
 
 LMIs = [LMIs, Q <= 0];
 
-%out.cpusec_m = etime(clock,out.cpusec_m);
-
 % Determina o número de linhas de LMIs e variáveis escalares
 out.L = 0;
 for i=1:size(LMIs,1)

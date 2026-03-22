@@ -167,7 +167,6 @@ if ~islogical(options.plot_graphic) && ~ismember(options.plot_graphic, [0, 1])
     error('valor_singular_sistema_incerto_discrete:InvalidPlotGraphic', 'plot_graphic deve ser um valor lógico (true/false ou 0/1).');
 end
 
-
 %   Uso das Opções  
 passo_simplex = options.simplex_step;
 Ts = options.Ts;

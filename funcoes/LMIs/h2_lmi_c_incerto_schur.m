@@ -42,7 +42,7 @@ function out = h2_lmi_c_incerto_schur(A,B,C,D, varargin)
 %   out.p        -> Valor mínimo do residual das LMIs (resultado de checkset), indicando a viabilidade.
 %
 % Date: 02/10/2025
-% Author: glaucogcps@gmail.com
+% Author: glauco.gcps@gmail.com
 
 %   Bloco de Validação de Entrada  
 if nargin < 4

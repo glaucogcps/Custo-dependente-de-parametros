@@ -1,45 +1,45 @@
 function out = hinf_lmi_d_incerto_param(A, B, C, D, varargin)
 % function out = hinf_lmi_d_incerto_param(A, B, C, D, varargin)
 %
-% Avalia o custo H infinito garantido de um sistema linear discreto no tempo 
+% Avalia o custo H infinito garantido de um SISTEMA LINEAR DISCRETO no tempo 
 % com incerteza politópica, utilizando funções de Lyapunov dependentes de parâmetros.
 %
 % Esta função implementa duas abordagens para o cálculo do custo:
 % 1. Lema Real Limitado (Bounded Real Lemma) clássico dependente de parâmetros.
-% 2. Uma formulação relaxada utilizando variáveis de folga (multiplicadores),
-%    que desacopla as matrizes do sistema da matriz de Lyapunov (Lema de Finsler/Projeção).
+% 2. Formulação relaxada utilizando variáveis de folga (multiplicadores),
+%    que desacopla as matrizes do sistema da matriz de Lyapunov.
 %
-% input:
-%   A, B, C, D -> Cell arrays contendo as matrizes de espaço de estados (vértices do politopo).
-%                 Cada cell array deve conter N matrizes.
-%   varargin   -> (opcional) Pares nome-valor ou estrutura de opções:
-%                 - 'solver': String. Nome do solver (padrão: 'sedumi').
-%                 - 'deg': Inteiro. Grau do polinômio da matriz de Lyapunov P(alpha). (Padrão: 1)
-%                 - 'degGamma': Inteiro. Grau do polinômio do custo gamma(alpha). (Padrão: 0)
-%                 - 'op': Inteiro (0 ou 1). 
-%                         0 -> Otimiza a integral/média do custo (gamma polinomial).
-%                         1 -> Otimiza o pico do custo (gamma constante). (Padrão: 0)
-%                 - 'varFolga': Booleano (0 ou 1).
-%                         0 -> Formulação clássica (BRL).
-%                         1 -> Formulação relaxada com variáveis de folga. (Padrão: 1)
-%                 - 'verbose': Inteiro. Nível de verbosidade do solver. (Padrão: 0)
+% Entradas:
+%   A, B, C, D - Cell arrays contendo as matrizes dos vértices do politopo.
+%                Ex: A = {A1, A2, ..., AN}, onde N é o número de vértices.
+%   varargin   - (Opcional) Struct ou pares nome-valor com opções:
+%                .solver   : Solver a ser utilizado (default: 'mosek')
+%                .deg      : Grau do polinômio da matriz de Lyapunov P (default: 1)
+%                .degGamma : Grau do polinômio da variável de desempenho (default: 0)
+%                .op       : Tipo de otimização (0 = integral/média, 1 = pico) (default: 0)
+%                .varFolga : Uso de variáveis de folga/Finsler (1 = sim, 0 = não) (default: 1)
+%                .verbose  : Nível de detalhe do solver (default: 0)
 %
-% output:
-%   out.feas       -> 1 se viável, 0 se inviável.
-%   out.wc         -> Pior caso (worst-case) da norma Hinf encontrado na validação.
-%   out.normSysWc  -> Norma Hinf real do sistema congelado no ponto de pior caso.
-%   out.cpusec_m   -> Tempo de montagem das LMIs.
-%   out.cpusec_s   -> Tempo de solução do solver.
-%   out.L          -> Número de linhas de LMI.
-%   out.V          -> Número de variáveis escalares.
-%   out.gcosts     -> Vetor de custos garantidos avaliados no grid de validação.
-%   out.realCosts  -> Vetor de custos reais avaliados no grid de validação.
+% Saída:
+%   out - Struct contendo os resultados da otimização e validação:
+%         .feas      : Status de viabilidade (1 = viável, 0 = inviável)
+%         .wc        : Pior custo Hinf garantido encontrado no grid
+%         .normSysWc : Custo Hinf real do sistema no ponto de pior caso garantido
+%         .wc_alpha  : Coordenadas baricêntricas do pior caso
+%         .gcosts    : Vetor com os custos garantidos avaliados no grid
+%         .realCosts : Vetor com os custos reais (norma inf) avaliados no grid
+%         .alpha     : Matriz com os pontos do simplex testados (cada linha é um ponto)
+%         .L         : Número de linhas das LMIs
+%         .V         : Número de variáveis escalares
+%         .cpusec_m  : Tempo de montagem das LMIs
+%         .cpusec_s  : Tempo de resolução do solver
+%         .rho_alpha : Objeto ROLMIP do polinômio de custo (gamma^2)
 %
-% Date: 28/01/2026
+% Date: 22/03/2026
 
 %   Bloco de Validação de Entrada  
 if nargin < 4
-    error('hinf_cost_d_rol_v2:NotEnoughInputs', 'São necessários A, B, C, D (cell arrays de matrizes).');
+    error('hinf_lmi_d_param:NotEnoughInputs', 'São necessários A, B, C, D (cell arrays de matrizes).');
 end
 
 input_cells = {A, B, C, D};
@@ -49,10 +49,10 @@ num_vertices = numel(A); % N
 % Valida tipos e consistência do número de vértices
 for i = 1:length(input_cells)
     if ~iscell(input_cells{i})
-        error('hinf_cost_d_rol_v2:InvalidInputType', 'O argumento %s deve ser um cell array.', input_names{i});
+        error('hinf_lmi_d_param:InvalidInputType', 'O argumento %s deve ser um cell array.', input_names{i});
     end
     if numel(input_cells{i}) ~= num_vertices
-        error('hinf_cost_d_rol_v2:DimensionMismatch', 'Todos os cell arrays devem ter o mesmo número de vértices.');
+        error('hinf_lmi_d_param:DimensionMismatch', 'Todos os cell arrays devem ter o mesmo número de vértices.');
     end
 end
 
@@ -61,46 +61,41 @@ n = size(A{1}, 1); % Ordem do sistema
 m = size(B{1}, 2); % Entradas
 p = size(C{1}, 1); % Saídas
 
-dims_A = size(A{1});
-dims_B = size(B{1});
-dims_C = size(C{1});
-dims_D = size(D{1});
+dims_A = size(A{1}); dims_B = size(B{1}); dims_C = size(C{1}); dims_D = size(D{1});
 
 if dims_A(1) ~= dims_A(2)
-    error('hinf_cost_d_rol_v2:InvalidADim', 'Matrizes A devem ser quadradas.');
+    error('hinf_lmi_d_param:InvalidADim', 'Matrizes A devem ser quadradas.');
 end
 if dims_B(1) ~= n || dims_C(2) ~= n
-    error('hinf_cost_d_rol_v2:IncompatibleDims', 'Dimensões de B ou C incompatíveis com A.');
+    error('hinf_lmi_d_param:IncompatibleDims', 'Dimensões de B ou C incompatíveis com A.');
 end
 if dims_D(1) ~= p || dims_D(2) ~= m
-    error('hinf_cost_d_rol_v2:IncompatibleDims', 'Dimensões de D incompatíveis com C e B.');
+    error('hinf_lmi_d_param:IncompatibleDims', 'Dimensões de D incompatíveis com C e B.');
 end
 
 % Valida conteúdo numérico
 for k = 1:num_vertices
     if ~isnumeric(A{k}) || ~isnumeric(B{k}) || ~isnumeric(C{k}) || ~isnumeric(D{k})
-        error('hinf_cost_d_rol_v2:NonNumeric', 'Conteúdo das células deve ser numérico.');
+        error('hinf_lmi_d_param:NonNumeric', 'Conteúdo das células deve ser numérico.');
     end
     if ~isequal(size(A{k}), dims_A) || ~isequal(size(B{k}), dims_B) || ...
        ~isequal(size(C{k}), dims_C) || ~isequal(size(D{k}), dims_D)
-        error('hinf_cost_d_rol_v2:VaryingDims', 'Dimensões das matrizes variam entre os vértices.');
+        error('hinf_lmi_d_param:VaryingDims', 'Dimensões das matrizes variam entre os vértices.');
     end
 end
-%   Fim do Bloco de Validação de Entrada  
 
 %   Tratamento das Opções (varargin)  
-options = [];
+options = struct('solver', 'mosek', 'deg', 1, 'degGamma', 0, 'op', 0, 'varFolga', 1, 'verbose', 0);
 if nargin > 4
     if nargin == 5 && isstruct(varargin{1})
-        options = varargin{1};
+        opts_in = varargin{1};
     else
-        try
-            options = struct(varargin{:});
-        catch ME
-            error('hinf_cost_d_rol_v2:InvalidOptions', 'Opções inválidas. Use struct ou pares nome-valor.');
-        end
+        try opts_in = struct(varargin{:}); catch, opts_in = struct(); end
     end
+    f = fieldnames(opts_in);
+    for i = 1:length(f), options.(f{i}) = opts_in.(f{i}); end
 end
+
 
 % Definição de Valores Padrão
 if ~isfield(options, 'solver'), options.solver = 'mosek'; end
@@ -158,20 +153,12 @@ end
 
 % Montagem das LMIs
 if options.varFolga == 0
-    %   Formulação Clássica (Bounded Real Lemma)  
-    % [ A'P A + P A + C'C    P B + C'D      ]
-    % [ B'P + D'C            D'D - rho*I    ] < 0
-    % Nota: O código original usava uma estrutura discreta/contínua mista ou específica.
-    % Abaixo segue a lógica estrita do código original fornecido:
-    
-    T11 = A_rol' * P + P * A_rol + C_rol' * C_rol; 
-    
-    T21 = B_rol' * P + D_rol' * C_rol;
-    T22 = D_rol' * D_rol - rho_alpha * eye(m);
-    
-    T = [T11, T21'; T21, T22];
-    
-    LMIs = [T <= 0, P >= 0];
+    M11 = A_rol'*P*A_rol - P + C_rol'*C_rol;
+    M21 = B_rol'*P*A_rol + D_rol'*C_rol;
+    M22 = D_rol'*D_rol + B_rol'*P*B_rol - rho_alpha * eye(m);
+    M = [M11, M21';
+         M21, M22];
+    LMIs = [M <= 0, P >= 0];
     
 else
     %   Formulação Relaxada (Variáveis de Folga / Finsler)  
@@ -210,50 +197,60 @@ out.cpusec_s = sol.solvertime;
 delta = min(checkset(LMIs));
 
 out.feas = 0;
-out.wc = [];
-out.normSysWc = [];
+out.wc = Inf;
+out.normSysWc = Inf;
 out.alpha = [];
 out.gcosts = [];
 out.realCosts = [];
 out.wc_alpha = [];
+out.rho_alpha = [];
 
 if delta > -1e-5
     out.feas = 1;
+    out.rho_alpha = rho_alpha;
     
-    %   Validação (Grid Search nas Arestas)  
-    % Varre as arestas entre vértices para comparar o custo garantido vs. real
+    %   Validação (Grid Search em todo o Simplex)  
     maxNorm = -1e10;
+    passo_grid = 0.05; 
     
-    for i = 1:num_vertices
-        for j = i+1:num_vertices
-            for a = 0:0.01:1
-                % Vetor de coordenadas baricêntricas para a aresta i-j
-                s = zeros(1, num_vertices);
-                s(1, i) = a;
-                s(1, j) = 1 - a;
-                
-                out.alpha = [out.alpha; a];
-                
-                % 1. Custo Garantido (via LMI)
-                v = double(sqrt(evalpar(rho_alpha, {s})));
-                out.gcosts = [out.gcosts; v];
-                
-                % Rastreia o pior caso garantido
-                if v > maxNorm
-                    maxNorm = v;
-                    wc_vec = s;
-                end
-                
-                % 2. Custo Real (Sistema Congelado)
-                Aa_val = a * Ao{i} + (1 - a) * Ao{j};
-                Ba_val = a * Bo{i} + (1 - a) * Bo{j};
-                Ca_val = a * Co{i} + (1 - a) * Co{j};
-                Da_val = a * Do{i} + (1 - a) * Do{j};
-                
-                % Cria sistema SS (assumindo tempo de amostragem -1 para discreto genérico)
-                sys_local = ss(Aa_val, Ba_val, Ca_val, Da_val, -1);
-                out.realCosts = [out.realCosts; norm(sys_local, inf)];                
-            end
+    % Gera os pontos do simplex unitário usando a nova função
+    pontos_alpha = particao_simplex(num_vertices, passo_grid);
+    out.alpha = zeros(length(pontos_alpha), num_vertices);
+    
+    for k = 1:length(pontos_alpha)
+        alpha_vec = pontos_alpha{k}; % Vetor coluna
+        s = alpha_vec'; % Vetor linha para o ROLMIP
+        out.alpha(k, :) = s;
+        
+        % 1. Custo Garantido (via LMI)
+        val = double(evalpar(rho_alpha, {s}));
+        v = sqrt(max(0, val)); % Raiz quadrada pois otimizamos gamma^2
+        out.gcosts = [out.gcosts; v];
+        
+        % Rastreia o pior caso garantido
+        if v > maxNorm
+            maxNorm = v;
+            wc_vec = s;
+        end
+        
+        % 2. Custo Real (Sistema Congelado)
+        Aa_val = zeros(n, n); Ba_val = zeros(n, m);
+        Ca_val = zeros(p, n); Da_val = zeros(p, m);
+        
+        % Combinação convexa generalizada para N vértices
+        for i = 1:num_vertices
+            Aa_val = Aa_val + alpha_vec(i) * Ao{i};
+            Ba_val = Ba_val + alpha_vec(i) * Bo{i};
+            Ca_val = Ca_val + alpha_vec(i) * Co{i};
+            Da_val = Da_val + alpha_vec(i) * Do{i};
+        end
+        
+        % Cria sistema SS (assumindo tempo de amostragem -1 para discreto genérico)
+        sys_local = ss(Aa_val, Ba_val, Ca_val, Da_val, -1);
+        try
+            out.realCosts = [out.realCosts; norm(sys_local, inf)];                
+        catch
+            out.realCosts = [out.realCosts; NaN];
         end
     end
     
@@ -261,16 +258,20 @@ if delta > -1e-5
     out.wc = maxNorm; 
     
     % Recalcula o sistema no ponto de pior caso encontrado
-    Aa_wc = zeros(n); Ba_wc = zeros(n, m); Ca_wc = zeros(p, n); Da_wc = zeros(p, m);
+    Aa_wc = zeros(n, n); Ba_wc = zeros(n, m); Ca_wc = zeros(p, n); Da_wc = zeros(p, m);
     for i = 1:num_vertices
-        Aa_wc = Aa_wc + wc_vec(1, i) * Ao{i};
-        Ba_wc = Ba_wc + wc_vec(1, i) * Bo{i};
-        Ca_wc = Ca_wc + wc_vec(1, i) * Co{i};
-        Da_wc = Da_wc + wc_vec(1, i) * Do{i};
+        Aa_wc = Aa_wc + wc_vec(i) * Ao{i};
+        Ba_wc = Ba_wc + wc_vec(i) * Bo{i};
+        Ca_wc = Ca_wc + wc_vec(i) * Co{i};
+        Da_wc = Da_wc + wc_vec(i) * Do{i};
     end
     
     sys_wc = ss(Aa_wc, Ba_wc, Ca_wc, Da_wc, -1);
-    out.normSysWc = norm(sys_wc, inf);
+    try
+        out.normSysWc = norm(sys_wc, inf);
+    catch
+        out.normSysWc = NaN;
+    end
 end
 
 end

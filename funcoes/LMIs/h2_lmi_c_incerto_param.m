@@ -1,10 +1,34 @@
 function out = h2_lmi_c_incerto_param(A, B, C, D, varargin)
 % function out = h2_lmi_c_incerto_param(A, B, C, D, varargin)
 %
-% Avalia o custo H2 garantido de um SISTEMA LINEAR CONTÍNUO.
-% Versão Corrigida e Numericamente Robusta.
+% Avalia o custo H2 garantido de um SISTEMA LINEAR CONTÍNUO sujeito a 
+% incertezas politópicas, utilizando funções de Lyapunov dependentes de parâmetros.
 %
-% Date: 17/02/2026
+% Entradas:
+%   A, B, C, D - Cell arrays contendo as matrizes dos vértices do politopo.
+%                Ex: A = {A1, A2, ..., AN}, onde N é o número de vértices.
+%                Nota: Para norma H2 contínua finita, a matriz D deve ser nula.
+%   varargin   - (Opcional) Struct com opções de configuração:
+%                .solver   : Solver a ser utilizado (default: 'mosek')
+%                .deg      : Grau do polinômio da matriz de Lyapunov P (default: 1)
+%                .degGamma : Grau do polinômio da variável de desempenho (default: 0)
+%                .op       : Tipo de otimização (0 = integral/média, 1 = pico) (default: 0)
+%                .varFolga : Uso de variáveis de folga/Finsler (1 = sim, 0 = não) (default: 1)
+%                .verbose  : Nível de detalhe do solver (default: 0)
+%
+% Saída:
+%   out - Struct contendo os resultados da otimização e validação:
+%         .feas      : Status de viabilidade (1 = viável, 0 = inviável)
+%         .wc        : Pior custo H2 garantido encontrado no grid
+%         .gcosts    : Vetor com os custos garantidos avaliados no grid
+%         .realCosts : Vetor com os custos reais (norma 2) avaliados no grid
+%         .alpha     : Matriz com os pontos do simplex testados (cada linha é um ponto)
+%         .L         : Número de linhas das LMIs
+%         .V         : Número de variáveis escalares
+%         .cpusec_m  : Tempo de montagem das LMIs
+%         .cpusec_s  : Tempo de resolução do solver
+%
+% Date: 22/03/2026
 
 %   Validação  
 if nargin < 4, error('Faltam argumentos'); end
@@ -25,76 +49,53 @@ C_rol = rolmipvar(C, 'C', num_vertices, 1);
 
 P = rolmipvar(n, n, 'P', 'symmetric', num_vertices, options.deg);
 
-%   Variável de Custo W(alpha)  
+% Configuração da variável de desempenho (rho/gamma)
 if options.op == 1
-    W = rolmipvar(m, m, 'W', 'symmetric', num_vertices, 0); 
-    obj = trace(W);
-else
-    W = rolmipvar(m, m, 'W', 'symmetric', num_vertices, options.degGamma);
-    obj = trace(W); 
+    % Caso op=1: rho é uma variável escalar constante (pico)
+    rho = sdpvar(1, 1);
+    rho_alpha = rolmipvar(rho, 'rho', num_vertices, 0); % Converte para rolmipvar grau 0
+    obj = rho;
+else        
+    % Caso op=0: rho é um polinômio rho(alpha)
+    powers = gen_coefs(num_vertices, options.degGamma);
+    obj = [];
+    rhos = cell(1, size(powers, 1));
+    
+    for i = 1:size(powers, 1)
+        rhos{i} = sdpvar(1, 1);
+        % Coeficiente binomial para ponderação na função objetivo (integral/média)
+        c_val = factorial(options.degGamma) / prod(factorial(powers(i, :)));  
+        if isempty(obj)
+            obj = rhos{i} * (1/c_val);
+        else
+            obj = rhos{i} * (1/c_val) + obj;
+        end
+    end    
+    rho_alpha = rolmipvar(rhos, 'rho', num_vertices, options.degGamma);
 end
 
 %   LMIs  
-if options.varFolga == 0
-    %   Clássica (Bounded Real Lemma H2)  
-    % 1. Estabilidade: A'P + PA + C'C < 0
-    M11 = A_rol' * P + P * A_rol;
-    M12 = C_rol';
-    M22 = -eye(p);
-    LMI_stab = [M11, M12; M12', M22] <= -1e-6*eye(n+p); % Estrita
-    
-    % 2. Custo: B'PB < W  => [W B'P; PB P] > 0
-    N11 = W;
-    N12 = B_rol' * P;
-    N22 = P;
-    LMI_cost = [N11, N12; N12', N22] >= 1e-6*eye(m+n); % Estrita
-    
-    LMIs = [LMI_stab, LMI_cost];
+if options.varFolga == 0  
+    LMIs = [trace(B_rol'*P*B_rol) <= rho_alpha, P >= 0, A_rol'*P + P*A_rol + C_rol'*C_rol <=0];
 else
-    %   Relaxada (Finsler / OP08b)  
-    % Variável de folga G (nxn)
-    G = rolmipvar(n, n, 'G', 'full', num_vertices, options.deg);
+    LMIs = [trace(B_rol'*P*B_rol) <= rho_alpha];
     
-    % 1. Estabilidade Relaxada (Forma Dual - Mais comum para análise)
-    % [ A G + G' A'    P - G + G' A'    B ]
-    % [ P - G' + A G   -G - G'          0 ] < 0
-    % [ B'             0                -I]
-    % *Nota: Para H2, a entrada é B (impulso) e saída é C.
-    % A condição de estabilidade é sobre A e C.
+    %   Formulação Relaxada (Variáveis de Folga / Finsler)  
+    % Introduz multiplicador X para desacoplar as matrizes do sistema de P
     
-    % Vamos usar a forma PRIMAL que é mais robusta para análise de estabilidade:
-    % [ G'A + A'G    G'B        C'       P - G' + A'G ]
-    % [ B'G          -I         D'       B'G          ] ... (D=0)
-    %
-    % Simplificando para H2 (A, C):
-    % [ A'G + G'A    P - G + G'A    C' ]
-    % [ P - G' + A'G  -G - G'       0  ] < 0
-    % [ C             0             -I ]
+    X = rolmipvar(2*n + p, n + p, 'X', 'full', num_vertices, options.deg);
+    Z = zeros(n);
     
-    R11 = A_rol' * G + G' * A_rol;
-    R12 = P - G + A_rol' * G'; % Termo de acoplamento
-    R13 = C_rol';
+    % Matriz Q contendo P e rho
+    Q = blkdiag([Z, P; P, Z], eye(p));
     
-    R22 = -G - G';
-    R23 = zeros(n, p);
-    R33 = -eye(p);
-    
-    LMI_stab = [R11, R12, R13;
-                R12', R22, R23;
-                R13', R23', R33] <= -1e-6*eye(2*n+p);
-                
-    % 2. Custo Relaxado
-    % Trace(B' P B) < Trace(W)
-    % [ W      B'G'     ]
-    % [ GB   G + G' - P ] > 0
-    
-    S11 = W;
-    S12 = B_rol' * G';
-    S22 = G + G' - P;
-    
-    LMI_cost = [S11, S12; S12', S22] >= 1e-6*eye(m+n);
-    
-    LMIs = [LMI_stab, LMI_cost];
+    % Matriz Bcal contendo a dinâmica do sistema
+    % Estrutura típica para impor a dinâmica via multiplicadores
+    Bcal = [eye(n), -A_rol, zeros(n, p);
+            zeros(p, n), -C_rol, eye(p)];
+            
+    % LMI: Q + X*Bcal + Bcal'*X' <= 0
+    LMIs = [LMIs, Q + X * Bcal + Bcal' * X' <= 0, P >= 0];
 end
 
 %   Solução  
@@ -109,27 +110,49 @@ out.cpusec_s = sol.solvertime;
 if min(checkset(LMIs)) > -1e-6
     out.feas = 1;
     
-    % Calcula pior caso (Grid)
+    % Calcula pior caso (Grid) generalizado para N vértices
     max_val = -inf;
     out.gcosts = [];
     out.realCosts = [];
-    out.alpha = 0:0.05:1; % Salva o vetor alpha para plotagem
+    
+    % Define o passo da malha (pode ser parametrizado no varargin futuramente)
+    passo_grid = 0.05; 
+    
+    % Gera os pontos do simplex unitário usando a nova função
+    pontos_alpha = particao_simplex(num_vertices, passo_grid);
+    
+    % Inicializa a matriz para salvar os pontos testados (útil para plotagem)
+    out.alpha = zeros(length(pontos_alpha), num_vertices);
     
     % Preserva originais para validação
     Ao = A; Bo = B; Co = C;
     
-    for a = out.alpha
+    for k = 1:length(pontos_alpha)
+        alpha_vec = pontos_alpha{k}; % Vetor coluna com as coordenadas baricêntricas
+        out.alpha(k, :) = alpha_vec'; % Salva como linha na saída
+        
         % 1. Custo Garantido
-        W_val = double(evalpar(W, {[a, 1-a]}));
+        % evalpar do ROLMIP espera um cell array com o vetor de coordenadas (em linha)
+        W_val = double(evalpar(rho_alpha, {alpha_vec'}));
         v = sqrt(trace(W_val));
         out.gcosts = [out.gcosts; v];
         if v > max_val, max_val = v; end
         
         % 2. Custo Real
-        Aa = a*Ao{1} + (1-a)*Ao{2};
-        Ba = a*Bo{1} + (1-a)*Bo{2};
-        Ca = a*Co{1} + (1-a)*Co{2};
-        sys = ss(Aa, Ba, Ca, zeros(p,m), 0);
+        % Inicializa matrizes vazias para a combinação convexa
+        Aa = zeros(n, n);
+        Ba = zeros(n, m);
+        Ca = zeros(p, n);
+        
+        % Combinação convexa generalizada para N vértices
+        for i = 1:num_vertices
+            Aa = Aa + alpha_vec(i) * Ao{i};
+            Ba = Ba + alpha_vec(i) * Bo{i};
+            Ca = Ca + alpha_vec(i) * Co{i};
+        end
+        
+        % Monta o sistema contínuo (D = 0 para norma H2 finita)
+        sys = ss(Aa, Ba, Ca, zeros(p,m)); 
         try
             out.realCosts = [out.realCosts; norm(sys, 2)];
         catch
@@ -139,6 +162,7 @@ if min(checkset(LMIs)) > -1e-6
     out.wc = max_val;
 else
     out.feas = 0;
+    out.rho_alpha = [];
     out.wc = Inf;
     out.gcosts = [];
     out.realCosts = [];

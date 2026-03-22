@@ -167,7 +167,6 @@ if options.h2 == 0
         mu = sdpvar(1); % Variável de otimização para a norma h2^2
         obj = mu;
     else 
-        %out = hinf_lmi_d_incerto(A,B,C,D, 'grau', grau, 'grau_mu', 0);
         rho = sdpvar(1, 1);
         mu = rolmipvar(1, 1, 'mu', 'full', num_vertices, grau_mu);
         m = coeffs(mu);

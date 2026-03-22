@@ -148,8 +148,6 @@ end
 grau = options.grau;
 
 %   Início da Lógica da Função  
-% As variáveis 'num_vertices', 'order', 'inputs', 'outputs' já foram determinadas
-% no bloco de validação de entrada.
 
 out.cpusec_m = clock;
 
