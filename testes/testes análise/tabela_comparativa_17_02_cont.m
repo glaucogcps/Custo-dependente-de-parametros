@@ -7,7 +7,7 @@ load(arquivo);
 
 % Configurações
 % 5 é bom, 9 melhor
-idx_sys = 10; % Escolha o sistema
+idx_sys = 9; % Escolha o sistema
 prec = 100000;
 graus_teste = 1:4; % Testar graus 1, 2, 3, 4
 
@@ -19,15 +19,15 @@ Ci = matrix_configs{idx_sys,3}; Di = matrix_configs{idx_sys,4};
 A = cell(1,2); B = cell(1,2); C = cell(1,2); D = cell(1,2);
 for j=1:2
     A{j} = double(int32(prec*Ai{j}))/prec; B{j} = double(int32(prec*Bi{j}))/prec;
-    C{j} = double(int32(prec*Ci{j}))/prec; D{j} = double(int32(prec*Di{j}))/prec;
+    C{j} = double(int32(prec*Ci{j}))/prec; D{j} = 0*double(int32(prec*Di{j}))/prec;
 end
 
 % 1. Curva Real
-alphas = 0:0.01:1;
+alphas = 0:0.05:1;
 H_real = zeros(length(alphas), 1);
 for k = 1:length(alphas)
     a = alphas(k);
-    sys = ss(a*A{1}+(1-a)*A{2}, a*B{1}+(1-a)*B{2}, a*C{1}+(1-a)*C{2}, a*D{1}+(1-a)*D{2}, 0);
+    sys = ss(a*A{1}+(1-a)*A{2}, a*B{1}+(1-a)*B{2}, a*C{1}+(1-a)*C{2}, a*D{1}+(1-a)*D{2});
     H_real(k) = norm(sys, inf);
 end
 

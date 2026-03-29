@@ -1,7 +1,4 @@
-% SCRIPT DE GERAÇÃO FINAL (Com hinf_lmi_c_incerto_param)
 clear; clc; close all;
-
-fprintf('--- Geração de Politopos H-Infinito (Contínuo - Relaxado) ---\n');
 
 % Configurações
 n = 3; m = 2; p = 2; N = 2;
@@ -12,7 +9,7 @@ matrix_configs = {};
 current_list_size = 0;
 attempts = 0;
 
-fprintf('Buscando %d sistemas...\n', target_list_size);
+fprintf('Buscando %d sistemas...', target_list_size);
 fprintf('%-10s %-15s %-15s %-15s\n', 'Tentativa', 'Status', 'Max Real Eig', 'Gap (%)');
 fprintf('%s\n', repmat('-', 1, 60));
 
@@ -54,8 +51,6 @@ while current_list_size < target_list_size
 
     % 3. Cálculo H-Infinito (LMI Relaxada)
     try
-        % Usa a NOVA função que você forneceu
-        % varFolga=1 (Relaxada) é crucial para encontrar soluções
         opt.varFolga = 1; 
         opt.deg = 1;      % Grau 1 para P(alpha)
         opt.verbose = 0;

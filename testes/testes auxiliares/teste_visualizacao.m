@@ -7,7 +7,7 @@ alpha_matrix = cell2mat(alphas_2d);
 
 figure;
 % Plotar as coordenadas X (posições ímpares) vs as coordenadas Y (posições pares)
-plot(alpha_matrix(1,:), alpha_matrix(2,:), 'b.', 'MarkerSize', 8); % <--- CORREÇÃO AQUI
+plot(alpha_matrix(1,:), alpha_matrix(2,:), 'b.', 'MarkerSize', 8); 
 xlabel('\alpha_1');
 ylabel('\alpha_2');
 title('Politopo (N=2 Vértices)');

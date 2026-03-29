@@ -44,12 +44,18 @@ end
 passo_str = strrep(num2str(passo, '%.10f'), '.', 'p'); 
 filename = sprintf('alfas_simplex_dimensao_%d_passo_%s.mat', num_dimensoes, passo_str);
 
+cache_folder = 'alfas_simplex'; % Nome da pasta onde os arquivos ficarão
+if ~exist(cache_folder, 'dir')
+    mkdir(cache_folder); % Cria a pasta se ela não existir no diretório atual
+end
+filepath = fullfile(cache_folder, filename); % Monta o caminho completo: cache_simplex/arquivo.mat
+
 %   Verifica se o arquivo de cache existe  
-if exist(filename, 'file') == 2
+if exist(filepath, 'file') == 2
     fprintf('Arquivo de cache "%s" encontrado. Carregando dados...\n', filename);
     
     % Carrega o arquivo MAT para uma estrutura temporária
-    temp_data = load(filename); 
+    temp_data = load(filepath); 
     
     % Verifica se a variável esperada existe na estrutura
     if isfield(temp_data, 'pontos_simplex_saved')
@@ -58,7 +64,6 @@ if exist(filename, 'file') == 2
         return; 
     else
         fprintf('AVISO: Variável "pontos_simplex_saved" não encontrada no cache. Recalculando...\n');
-        % Se a variável não for encontrada, o código continua para recalcular
     end
 else
     fprintf('Arquivo de cache "%s" não encontrado. Realizando cálculo (ITERATIVO)...\n', filename);

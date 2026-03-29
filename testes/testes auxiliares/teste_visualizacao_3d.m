@@ -1,4 +1,3 @@
-
 num_dimensoes = 3;
 passo = 0.05; % Malha
 alphas_3d = particao_simplex(num_dimensoes, passo);

@@ -1,9 +1,6 @@
-clear; % Limpa todas as variáveis do workspace
-clc;   % Limpa a janela de comando
-close all; % Fecha todas as figuras abertas
-
-fprintf(' Iniciando Geração de Politopos para Análise de Norma H2 Contínua \n');
-fprintf('Buscando configurações de sistema politópico com norma H2 finita e pior caso não em vértice.\n\n');
+clear; 
+clc;   
+close all;
 
 %  1. Definição dos Parâmetros do Sistema 
 n = 3; % Número de estados (ordem do sistema)
@@ -12,10 +9,6 @@ p = 2; % Número de saídas
 N = 3; % Número de vértices do politopo (quantos conjuntos de (A,B,C,D) compõem o politopo)
 
 %  2. Definição do Passo para a Partição do Simplex 
-% Um passo menor gera uma malha mais fina e mais pontos, resultando em maior precisão
-% mas também maior tempo de computação.
-% Para este teste, usaremos um passo de 0.01 para agilizar a busca.
-% Para uma análise mais rigorosa, considere usar 0.001 ou menor.
 simplex_step = 0.01; 
 
 fprintf('Parâmetros do sistema: n=%d (estados), m=%d (entradas), p=%d (saídas), N=%d (vértices).\n', n, m, p, N);
@@ -26,8 +19,6 @@ matrix_configs = {}; % Inicializa um cell array vazio para armazenar as configur
 target_list_size = 5; % Número desejado de configurações a serem salvas
 current_list_size = 0;
 iteration_count = 0; % Contador de iterações para acompanhamento do progresso
-
-fprintf('\nIniciando busca por %d configurações de politopos que atendam aos critérios...\n', target_list_size);
 
 % Loop para gerar e testar politopos até atingir o número desejado de configurações
 while current_list_size < target_list_size
@@ -94,6 +85,6 @@ end
 filename = sprintf('polytop_h2_finite_non_vertex_N%d_n%d_step%g.mat', N, n, simplex_step);
 save(filename, 'matrix_configs', 'N', 'n', 'm', 'p', 'simplex_step');
 
-fprintf('\n--- Geração e Filtragem de Politopos Concluída \n');
+fprintf('Geração e Filtragem de Politopos Concluída');
 fprintf('Salvas %d configurações de politopos em "%s"\n', current_list_size, filename);
 fprintf('Parâmetros do arquivo: N=%d (vértices), n=%d (ordem do sistema), simplex_step=%g.\n', N, n, simplex_step);
