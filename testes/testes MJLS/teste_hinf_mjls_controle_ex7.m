@@ -54,7 +54,7 @@ opt.solver = 'mosek';
 opt.op = 0;            % 0 = integral/média (rho polinomial)
 opt.hinf = 0;          % Minimizar a norma Hinf
 opt.tolerance = 1e-7;
-opt.indep = 0;
+opt.indep = 1;
 vetor_cor = ['r'; 'b'; 'g'; 'c'; 'm'; 'k'];
 
 %% 3. Teste: Variando o grau de P (deg) e degrho
@@ -66,6 +66,7 @@ if N == 2
 end
 
 H_table = [];
+K_list = {}; % Inicializa lista 
 disp('Iniciando Teste de Análise (Variando deg e degrho)...');
 
 graus_rho_teste = 0:5; % Testando graus de 0 a 3 para a variável de custo rho
@@ -81,10 +82,14 @@ for deg = graus_P_teste
         
         % Chamada da função de análise (certifique-se de que o nome do arquivo bate com a sua função)
         out =  hinf_lmi_mjls_d_incerto_controle(A, B, E, Cz, Dz, Ez, Gamma, mu, opt);
-        % out =  h2_lmi_mjls_d_incerto_analise(A, E, Cz, Ez, Gamma, mu, opt);
         
         if out.feas == 1
             fprintf('Viável! (Tempo: %.2f s, Hinf Pior Caso: %.4f)\n', out.cpusec, out.hinf);
+            fprintf('Matriz de Ganho K_wc (deg=%d, d=%d):\n', deg, d);
+            disp(out.K); 
+            % Armazena cada modo em uma coluna da mesma linha 
+            % O uso de (end+1, 1:sigma) garante que os ganhos fiquem lado a lado
+            K_list(end+1, 1:sigma) = out.K(:)'; 
             
             % Plota os resultados APENAS se N == 2 e fixando um grau de P para clareza no gráfico
             if N == 2 && deg == 3
@@ -137,18 +142,25 @@ if isempty(H_table)
     warning('Nenhuma solução viável foi encontrada para os graus testados.'); 
 else
     T_H = array2table(H_table, 'VariableNames', {'Grau_P', 'Grau_rho', 'Erro_Norma', 'Max_Gap', 'Min_Gap', 'Norma_Melhor_Caso', 'Norma_Pior_Caso', 'Variaveis', 'Linhas_LMI'});
+    % Distribui os ganhos na tabela automaticamente 
+    % Como K_list já é M x sigma, basta atribuir cada coluna
+    for m = 1:sigma
+        col_name = sprintf('K_wc_Mode%d', m);
+        T_H.(col_name) = K_list(:, m);
+    end
+    
     disp(T_H);
     
-    writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_Tabela.csv');
-%     writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_indep_Tabela.csv');
+%     writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_Tabela.csv');
+    writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_indep_Tabela.csv');
     fprintf('Tabela salva como teste_controle_Hinf_MJLS_Ex7_Tabela.csv\n');
 end
 
 if N == 2 && ~isempty(H_table)
-    print('teste_controle_Hinf_MJLS_Ex7_N2_grafico', '-depsc'); 
-    savefig('teste_controle_Hinf_MJLS_Ex7_N2_grafico.fig');
-%     print('teste_controle_Hinf_MJLS_Ex7_N2_indep_grafico', '-depsc'); 
-%     savefig('teste_controle_Hinf_MJLS_Ex7_N2_indep_grafico.fig');
+%     print('teste_controle_Hinf_MJLS_Ex7_N2_grafico', '-depsc'); 
+%     savefig('teste_controle_Hinf_MJLS_Ex7_N2_grafico.fig');
+    print('teste_controle_Hinf_MJLS_Ex7_N2_indep_grafico', '-depsc'); 
+    savefig('teste_controle_Hinf_MJLS_Ex7_N2_indep_grafico.fig');
     fprintf('Gráfico salvo como teste_controle_Hinf_MJLS_Ex3_grafico.eps e teste_controle_Hinf_MJLS_Ex3_grafico.fig\n');
 end
 

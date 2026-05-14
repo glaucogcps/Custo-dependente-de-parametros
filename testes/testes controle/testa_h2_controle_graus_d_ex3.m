@@ -61,13 +61,14 @@ Ez{2} = 0;
 
 disp('Sistema gerado com sucesso (Exemplo 3 completo - 4 vértices).');
 fprintf('\n');
-
+sigma = 1;
 %% 2. Configuração das Opções do Solver
 opt = struct(); 
 opt.solver = 'mosek'; 
 opt.verbose = 0; 
 opt.varFolga = 1; 
-opt.op = 0;      
+opt.op = 0;
+
 vetor_cor = ['r--'; 'b--'; 'g--'; 'c--'; 'm--'; 'k--'];
 
 %% 3. Teste: Variando o grau de P (deg) de 1 a 5 e degGamma de 0 a 5
@@ -79,29 +80,32 @@ if N == 2
 end
 
 H_table = [];
+K_list = {}; 
 disp('Iniciando Teste de Síntese (Variando deg e degGamma)...');
 graus_gamma_teste = 0:5;
-
 for deg = 1:5
     for idx = 1:length(graus_gamma_teste)
         d = graus_gamma_teste(idx);
-        opt.deg = deg;        % Grau de P(alpha)
-        opt.degGamma = d;     % Grau de rho(alpha)
-        
+        opt.deg = deg;        
+        opt.degGamma = d;     
+        opt.degM = deg;
         fprintf('Resolvendo para deg=%d, degGamma=%d... ', deg, d);
         out = h2_lmi_d_incerto_controle_v2(A, B, E, Cz, Dz, Ez, opt);
         
         if out.feas == 1
             fprintf('Viável! (Tempo: %.2f s)\n', out.cpusec_s);
+            fprintf('Matriz de Ganho K_wc (deg=%d, d=%d):\n', deg, d);
+             % Verifica se o retorno é célula (MJLS) ou matriz (Politópico)
+            if iscell(out.K_wc)
+                K_list(end+1, 1:numel(out.K_wc)) = out.K_wc(:)'; 
+            else
+                K_list{end+1, 1} = out.K_wc; % Empacota a matriz em uma célula
+            end
             
-            % Plota os resultados APENAS se N == 2
             if N == 2 && deg == 3
-                % Extrai a cor atual
                 cor_atual = vetor_cor(idx, 1);
-                % Plota o Custo REAL usando apenas a primeira coluna de alpha (alpha_1)
                 plot(out.alpha(:, 1), out.realCosts, 'Color', cor_atual, 'LineStyle', '-', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
-                % Plota o Custo GARANTIDO usando apenas a primeira coluna de alpha (alpha_1)
                 plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
             end
@@ -112,32 +116,33 @@ for deg = 1:5
             norma_melhor_caso = min(out.realCosts);
             norma_pior_caso = max(out.realCosts);
             
-            % Adicionando a variável 'deg' (Grau de P) como a primeira coluna da tabela
             H_table = [H_table; deg, d, erro_norma, max_gap, min_gap, norma_melhor_caso, norma_pior_caso, out.V, out.L];
         else
             fprintf('Inviável.\n');
         end
     end
 end
-
 if N == 2
     legend('Location', 'southeast'); 
     xlim([0 1]);
 end
-
 %% 4. Exibição dos Resultados
 disp(' Tabela de Resultados (deg e degGamma variando):');
 if isempty(H_table)
     warning('Nenhuma solução viável foi encontrada para os graus testados.'); 
-    disp('O sistema não é estabilizável para os parâmetros fornecidos.');
 else
-    % Atualizando os nomes das colunas para incluir as novas métricas
     T_H = array2table(H_table, 'VariableNames', {'Grau_P', 'Grau_mu', 'Erro_Norma', 'Max_Gap', 'Min_Gap', 'Norma_Melhor_Caso', 'Norma_Pior_Caso', 'Variaveis', 'Linhas_LMI'});
-    disp(T_H);
+    % Distribui os ganhos na tabela automaticamente 
+    % Como K_list já é M x sigma, basta atribuir cada coluna
+    for m = 1:sigma
+        col_name = sprintf('K_wc_Mode%d', m);
+        T_H.(col_name) = K_list(:, m);
+    end
     
+    disp(T_H);
 %     writetable(T_H, 'teste_controle_H2_Ex3_Tabela.csv'); 
     writetable(T_H, 'teste_controle_H2_Ex3_N2_Tabela.csv'); 
-    fprintf('Tabela salva como teste_controle_H2_Ex3_Tabela.csv\n');
+    fprintf('Tabela salva como teste_controle_H2_Ex3_N2_Tabela.csv\n');
 end
 
 if N == 2 && ~isempty(H_table) 

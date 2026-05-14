@@ -66,16 +66,16 @@ if N == 2
 end
 
 H_table = [];
+K_list = {}; % Inicializa lista 
 disp('Iniciando Teste de Análise (Variando deg e degrho)...');
-
 graus_rho_teste = 0:5; % Testando graus de 0 a 3 para a variável de custo rho
 graus_P_teste = 0:5;   % Testando graus de 1 a 2 para a matriz de Lyapunov P
-
 for deg = graus_P_teste
     for idx = 1:length(graus_rho_teste)
         d = graus_rho_teste(idx);
         opt.deg = deg;        % Grau de P_i(alpha)
         opt.degrho = d;       % Grau de rho(alpha)
+        opt.degW = d;
         
         fprintf('Resolvendo para deg(P)=%d, degrho=%d... ', deg, d);
         
@@ -84,6 +84,11 @@ for deg = graus_P_teste
         
         if out.feas == 1
             fprintf('Viável! (Tempo: %.2f s, Hinf Pior Caso: %.4f)\n', out.cpusec, out.h2);
+            fprintf('Matriz de Ganho K_wc (deg=%d, d=%d):\n', deg, d);
+            disp(out.K); 
+            % Armazena cada modo em uma coluna da mesma linha 
+            % O uso de (end+1, 1:sigma) garante que os ganhos fiquem lado a lado
+            K_list(end+1, 1:sigma) = out.K(:)'; 
             
             % Plota os resultados APENAS se N == 2 e fixando um grau de P para clareza no gráfico
             if N == 2 && deg == 3
@@ -123,12 +128,10 @@ for deg = graus_P_teste
         yalmip('clear'); 
     end
 end
-
 if N == 2
     legend('Location', 'best'); 
     xlim([0 1]);
 end
-
 %% 4. Exibição dos Resultados
 disp(' ');
 disp(' Tabela de Resultados (deg e degrho variando):');
@@ -136,6 +139,13 @@ if isempty(H_table)
     warning('Nenhuma solução viável foi encontrada para os graus testados.'); 
 else
     T_H = array2table(H_table, 'VariableNames', {'Grau_P', 'Grau_rho', 'Erro_Norma', 'Max_Gap', 'Min_Gap', 'Norma_Melhor_Caso', 'Norma_Pior_Caso', 'Variaveis', 'Linhas_LMI'});
+    % Distribui os ganhos na tabela automaticamente 
+    % Como K_list já é M x sigma, basta atribuir cada coluna
+    for m = 1:sigma
+        col_name = sprintf('K_wc_Mode%d', m);
+        T_H.(col_name) = K_list(:, m);
+    end
+    
     disp(T_H);
     
 %     writetable(T_H, 'teste_controle_H2_MJLS_Ex7_N2_Tabela.csv');

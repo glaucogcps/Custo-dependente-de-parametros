@@ -47,7 +47,7 @@ A_rol = rolmipvar(A, 'A', num_vertices, 1);
 B_rol = rolmipvar(B, 'B', num_vertices, 1);
 C_rol = rolmipvar(C, 'C', num_vertices, 1);
 
-P = rolmipvar(n, n, 'P', 'symmetric', num_vertices, options.deg);
+P = rolmipvar(n, n, 'P', 'symmetric', num_vertices, options.degP);
 
 % Configuração da variável de desempenho (rho/gamma)
 if options.op == 1

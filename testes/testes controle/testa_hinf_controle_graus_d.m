@@ -43,6 +43,7 @@ if N == 2
 end
 
 H_table = [];
+K_list = {}; 
 disp('Iniciando Teste de Síntese (Variando degGamma)...');
 
 % Vamos testar graus de 0 a 5 para o multiplicador de custo
@@ -60,6 +61,14 @@ for idx = 1:length(graus_gamma_teste)
     
     if out.feas == 1
         fprintf('Viável! (Tempo: %.2f s)\n', out.cpusec_s);
+        fprintf('Matriz de Ganho K_wc (deg=%d, d=%d):\n', deg, d);
+        disp(out.K_wc); 
+         % Verifica se o retorno é célula (MJLS) ou matriz (Politópico)
+            if iscell(out.K_wc)
+                K_list(end+1, 1:numel(out.K_wc)) = out.K_wc(:)'; 
+            else
+                K_list{end+1, 1} = out.K_wc; % Empacota a matriz em uma célula
+            end
         
         % Plota os resultados APENAS se N == 2
         if N == 2
@@ -102,6 +111,13 @@ if isempty(H_table)
 else
     % Cria a tabela apenas se houver dados
     T_H = array2table(H_table, 'VariableNames', {'Grau_gamma', 'Erro_Norma', 'Max_Gap', 'Min_Gap', 'Norma_Melhor_Caso', 'Norma_Pior_Caso', 'Variaveis', 'Linhas_LMI'});
+    % Distribui os ganhos na tabela automaticamente 
+    % Como K_list já é M x sigma, basta atribuir cada coluna
+    for m = 1:sigma
+        col_name = sprintf('K_wc_Mode%d', m);
+        T_H.(col_name) = K_list(:, m);
+    end
+    
     disp(T_H);
     % Salva os resultados da tabela
     writetable(T_H, 'teste_controle_Hinf_Tabela.csv');

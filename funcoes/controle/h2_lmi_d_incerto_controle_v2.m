@@ -15,11 +15,11 @@ function out = h2_lmi_d_incerto_controle_v2(A, B, E, Cz, Dz, Ez, varargin)
 %
 % varargin (Opções):
 %   .solver   : Solver a ser utilizado (default: 'mosek')
-%   .deg      : Grau do polinômio das matrizes W e M (default: 1)
+%   .deg      : Grau do polinômio das matrizes W (default: 1)
 %   .degGamma : Grau do polinômio da variável de desempenho (default: 0)
 %   .op       : Tipo de otimização (0 = integral/média, 1 = pico) (default: 0)
 %   .verbose  : Nível de detalhe do solver (default: 0)
-%
+%   .degM      : Grau do polinômio das matrizes M (default: 1)
 % Saída (out):
 %   .feas      : Status de viabilidade (1 = viável, 0 = inviável)
 %   .wc        : Pior custo H2 garantido encontrado no grid
@@ -117,6 +117,7 @@ end
 % Definição de Valores Padrão
 if ~isfield(options, 'solver'), options.solver = 'mosek'; end
 if ~isfield(options, 'deg'), options.deg = 1; end
+if ~isfield(options, 'degM'), options.degM = 1; end
 if ~isfield(options, 'degGamma'), options.degGamma = 0; end
 if ~isfield(options, 'op'), options.op = 0; end
 if ~isfield(options, 'varFolga'), options.varFolga = 1; end
@@ -142,7 +143,7 @@ Dz_rol = rolmipvar(Dz, 'Dz', num_vertices, 1);
 Ez_rol = rolmipvar(Ez, 'Ez', num_vertices, 1);
 
 % Gera a variável de Lyapunov P(alpha)
-M = rolmipvar(nz, nz, 'M', 'symmetric', num_vertices, options.deg);
+M = rolmipvar(nz, nz, 'M', 'symmetric', num_vertices, options.degM);
 W = rolmipvar(nx, nx, 'W', 'symmetric', num_vertices, options.deg);
 X = rolmipvar(nx, nx, 'X', 'full', num_vertices, 0);
 Z = rolmipvar(nu, nx, 'Z', 'full', num_vertices, 0);

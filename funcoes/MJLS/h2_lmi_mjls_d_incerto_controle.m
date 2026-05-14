@@ -11,6 +11,7 @@ function output = h2_lmi_mjls_d_incerto_controle(A, B, E, C, D, Gamma, mu, varar
 % varargin (Opções):
 %   .solver    : Solver LMI a ser utilizado (default: 'sedumi')
 %   .deg       : Grau do polinômio da matriz de Lyapunov P (default: 1)
+%   .degW       : Grau do polinômio da matriz W da condição de traço (default: 1)
 %   .h2        : Limite superior desejado para a norma H-2. Se for 0, a 
 %                função minimiza a norma H-2 (default: 0)
 %   .tolerance : Tolerância numérica para a verificação de viabilidade (default: 1e-7)
@@ -132,6 +133,7 @@ end
 
 if ~isfield(options,'solver'), options.solver = 'sedumi'; end
 if ~isfield(options,'deg'), options.deg = 1; end
+if ~isfield(options,'degW'), options.degW = 1; end
 if ~isfield(options,'h2'), options.h2 = 0; end
 if ~isfield(options,'tolerance'), options.tolerance = 1e-7; end
 if ~isfield(options,'op'), options.op = 1; end
@@ -203,7 +205,7 @@ end
 
 soma = 0;
 for i=1:sigma
-    W{i} = rolmipvar(nz, nz, strcat('W',num2str(i)), 'symmetric', N, options.deg);
+    W{i} = rolmipvar(nz, nz, strcat('W',num2str(i)), 'symmetric', N, options.degW);
     
     if (options.indep)
         H{i} = H_in;

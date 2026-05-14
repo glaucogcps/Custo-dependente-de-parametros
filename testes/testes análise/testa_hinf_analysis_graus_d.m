@@ -22,8 +22,8 @@ fprintf('Iniciando Teste 1 (Var mu, P=1)');
 if N == 2
     fig1 = figure('Name', 'Hinf Discreta: Teste 1', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (d) de \mu(\alpha) (P grau 1)');
-    ylabel('Norma H_\infty'); xlabel('\alpha_1');
+%     title('Variação do grau (d) de \mu(\alpha) (P grau 1)');
+    ylabel('Norma H_\infty'); xlabel('\alpha');
 end
 
 H1_table = [];
@@ -47,7 +47,7 @@ for idx = 1:length(graus_teste1)
                 plot(out.alpha(:, 1), out.realCosts, 'k-', 'LineWidth', 2, 'DisplayName', 'Real');
             end
             plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (d=%d)', d));
+                'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
         end
         
         erro_norma = norm(out.gcosts - out.realCosts);
@@ -66,8 +66,8 @@ fprintf('Iniciando Teste 2 (Var P, mu = 0, 1 e 8)');
 if N == 2
     fig2 = figure('Name', 'Hinf Discreta: Teste 2', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (g) de P (Plotando \mu=0)');
-    ylabel('Norma H_\infty'); xlabel('\alpha_1');
+%     title('Variação do grau (g) de P (Plotando \mu=0)');
+    ylabel('Norma H_\infty'); xlabel('\alpha');
 end
 
 H2_table = [];
@@ -105,7 +105,7 @@ for idx = 1:length(graus_teste2)
                 end
                 % Plota apenas o Caso 1 (mu=0) para não poluir o gráfico
                 plot(out1.alpha(:, 1), out1.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                    'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (g=%d, mu=0)', d));
+                    'LineWidth', 1.5, 'DisplayName', sprintf('g=%d, mu=0', d));
             end
             
             H2_table = [H2_table; d, erro1, max_gap1, out1.V, out1.L, ...
@@ -143,8 +143,8 @@ fprintf('Iniciando Teste 3 (Var mu, P=2)');
 if N == 2
     fig3 = figure('Name', 'Hinf Discreta: Teste 3', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (d) de \mu(\alpha) (P grau 2)');
-    ylabel('Norma H_\infty'); xlabel('\alpha_1');
+%     title('Variação do grau (d) de \mu(\alpha) (P grau 2)');
+    ylabel('Norma H_\infty'); xlabel('\alpha');
 end
 
 H3_table = [];
@@ -168,7 +168,7 @@ for idx = 1:length(graus_teste3)
                 plot(out.alpha(:, 1), out.realCosts, 'k-', 'LineWidth', 2, 'DisplayName', 'Real');
             end
             plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (d=%d)', d));
+                'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
         end
         
         erro_norma = norm(out.gcosts - out.realCosts);
@@ -220,17 +220,17 @@ end
 
 % Salva os gráficos
 if N == 2
-    if ~isempty(H1_table), figure(fig1); print('sistema_teste_d_Hinf_mu_0_a_10_P_1', '-depsc'); end
+    if ~isempty(H1_table), figure(fig1); print('sistema_teste_d_Hinf_mu_0_a_10_P_1', '-depsc'); savefig('sistema_teste_d_Hinf_mu_0_a_10_P_1.fig'); end
     if ~isempty(H2_table)
-        figure(fig2); print('sistema_teste_d_Hinf_P_1_a_5_mu_0_1_8', '-depsc'); 
-        figure(fig_bar); print('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8', '-depsc');
+        figure(fig2); print('sistema_teste_d_Hinf_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_Hinf_P_1_a_5_mu_0_1_8.fig');
+        figure(fig_bar); print('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8.fig');
     end
-    if ~isempty(H3_table), figure(fig3); print('sistema_teste_d_Hinf_mu_pares_ate_14_P_2', '-depsc'); end
+    if ~isempty(H3_table), figure(fig3); print('sistema_teste_d_Hinf_mu_pares_ate_14_P_2', '-depsc'); savefig('sistema_teste_d_Hinf_mu_pares_ate_14_P_2'); end
     fprintf('Gráficos e tabelas salvos no diretório atual.');
 else
     if ~isempty(H2_table)
         % O gráfico de barras não depende de N=2, então podemos salvá-lo
-        figure(fig_bar); print('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8', '-depsc');
+        figure(fig_bar); print('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_Hinf_barras_P_1_a_5_mu_0_1_8.fig');
         fprintf('Gráfico de barras e tabelas salvos. Gráficos de linha ignorados (N=%d).', N);
     end
 end

@@ -22,13 +22,13 @@ opt.solver = 'mosek';
 opt.verbose = 0;
 opt.varFolga = 1; 
 
-%% 3. Teste 1: Variando o grau de Gamma (degGamma) com P fixo (deg=1) 
-fprintf('Iniciando Teste 1 (Var mu, P=1)');
+%% 3. Teste 1: Variando o grau de Gamma (degGamma) com P fixo (deg=3) 
+fprintf('Iniciando Teste 1 (Var mu, P=3)');
 if N == 2
     fig1 = figure('Name', 'H2 Discreta: Teste 1', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (d) de \rho(\alpha) (P grau 1)');
-    ylabel('Norma H_2'); xlabel('\alpha_1');
+%     title('Variação do grau (d) de \rho(\alpha) (P grau 1)');
+    ylabel('Norma H_2'); xlabel('\alpha');
 end
 
 H_table = [];
@@ -37,7 +37,8 @@ colors1 = jet(length(graus_teste1));
 
 for idx = 1:length(graus_teste1)
     d = graus_teste1(idx);
-    opt.deg = 1;        
+    opt.deg = 1;      
+% opt.deg = d+1;
     opt.degGamma = d;   
     
     fprintf('Resolvendo para deg=1, degGamma=%d... ', d);
@@ -53,7 +54,7 @@ for idx = 1:length(graus_teste1)
                 plot(out.alpha(:, 1), out.realCosts, 'k-', 'LineWidth', 2, 'DisplayName', 'Real');
             end
             plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (d=%d)', d));
+                'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
         end
         
         erro_norma = norm(out.gcosts - out.realCosts);
@@ -72,8 +73,8 @@ fprintf('Iniciando Teste 2 (Var P, mu = 0, 1 e 8)');
 if N == 2
     fig2 = figure('Name', 'H2 Discreta: Teste 2', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (g) de P (Plotando \mu=0)');
-    ylabel('Norma H_2'); xlabel('\alpha_1');
+%     title('Variação do grau (g) de P (Plotando \mu=0)');
+    ylabel('Norma H_2'); xlabel('\alpha');
 end
 
 Hp_table = [];
@@ -86,11 +87,11 @@ for idx = 1:length(graus_teste2)
     
     % Caso 1: degGamma = 0
     opt.deg = d; opt.degGamma = 0;
-    out1 = h22_lmi_d_incerto_param(A, B, C, D, opt);
+    out1 = h2_lmi_d_incerto_param(A, B, C, D, opt);
     
     % Caso 2: degGamma = 1 
     opt.degGamma = 1;
-    out2 = h22_lmi_d_incerto_param(A, B, C, D, opt);
+    out2 = h2_lmi_d_incerto_param(A, B, C, D, opt);
     
     % Caso 3: degGamma = 8
     opt.degGamma = 8;
@@ -111,7 +112,7 @@ for idx = 1:length(graus_teste2)
             end
             % Plota apenas o Caso 1 (mu=0) para não poluir o gráfico
             plot(out1.alpha(:, 1), out1.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (g=%d, mu=0)', d));
+                'LineWidth', 1.5, 'DisplayName', sprintf('g=%d, mu=0', d));
         end
         
         Hp_table = [Hp_table; d, erro1, max_gap1, out1.V, out1.L, ...
@@ -146,8 +147,8 @@ fprintf('Iniciando Teste 3 (Var mu, P=2)');
 if N == 2
     fig3 = figure('Name', 'H2 Discreta: Teste 3', 'Color', 'w');
     hold on; grid on;
-    title('Variação do grau (d) de \mu(\alpha) (P grau 2)');
-    ylabel('Norma H_2'); xlabel('\alpha_1');
+%     title('Variação do grau (d) de \mu(\alpha) (P grau 2)');
+    ylabel('Norma H_2'); xlabel('\alpha');
 end
 
 Hnovo_table = [];
@@ -171,7 +172,7 @@ for idx = 1:length(graus_teste3)
                 plot(out.alpha(:, 1), out.realCosts, 'k-', 'LineWidth', 2, 'DisplayName', 'Real');
             end
             plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
-                'LineWidth', 1.5, 'DisplayName', sprintf('Garantido (d=%d)', d));
+                'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
         end
         
         erro_norma = norm(out.gcosts - out.realCosts);
@@ -223,17 +224,17 @@ end
 
 % Salva os gráficos
 if N == 2
-    if ~isempty(H_table), figure(fig1); print('sistema_teste_d_H2_mu_0_a_8_P_1', '-depsc'); end
+    if ~isempty(H_table), figure(fig1); print('sistema_teste_d_H2_mu_0_a_8_P_1', '-depsc'); savefig('sistema_teste_d_H2_mu_0_a_8_P_1.fig'); end
     if ~isempty(Hp_table)
-        figure(fig2); print('sistema_teste_d_H2_P_1_a_5_mu_0_1_8', '-depsc'); 
-        figure(fig_bar); print('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8', '-depsc');
+        figure(fig2); print('sistema_teste_d_H2_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_H2_P_1_a_5_mu_0_1_8.fig');
+        figure(fig_bar); print('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8.fig');
     end
-    if ~isempty(Hnovo_table), figure(fig3); print('sistema_teste_d_H2_mu_0_a_8_P_2', '-depsc'); end
+    if ~isempty(Hnovo_table), figure(fig3); print('sistema_teste_d_H2_mu_0_a_8_P_2', '-depsc'); savefig('sistema_teste_d_H2_mu_0_a_8_P_2.fig'); end
     fprintf('\nGráficos e tabelas salvos no diretório atual.\n');
 else
     if ~isempty(Hp_table)
         % O gráfico de barras não depende de N=2, então podemos salvá-lo
-        figure(fig_bar); print('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8', '-depsc');
+        figure(fig_bar); print('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8', '-depsc'); savefig('sistema_teste_d_H2_barras_P_1_a_5_mu_0_1_8.fig');
         fprintf('\nGráfico de barras e tabelas salvos. Gráficos de linha ignorados (N=%d).\n', N);
     end
 end

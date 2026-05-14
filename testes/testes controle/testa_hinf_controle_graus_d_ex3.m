@@ -7,8 +7,8 @@ nx = 2;
 nu = 1; 
 nw = 1; 
 nz = 1; 
-% N  = 4;
-N = 2;
+N  = 4;
+% N = 2;
 
 fprintf('Parâmetros: nx=%d, nu=%d, nw=%d, nz=%d, Vértices N=%d.\n', nx, nu, nw, nz, N);
 
@@ -37,27 +37,27 @@ Cz{2} = [ 0.2,  0];
 Dz{2} = -1; 
 Ez{2} = 0;
 
-% % Vértice 3
-% A{3}  = [-0.2970,  0.8907; 
-%         -0.2970,  0.8907];
-% B{3}  = [-1; 
-%          -1]; 
-% E{3}  = [ 0; 
-%           0]; 
-% Cz{3} = [ 0,  0]; 
-% Dz{3} = 1; 
-% Ez{3} = 0;
-% 
-% % Vértice 4
-% A{4}  = [-2.8903,  5.7876; 
-%         0.9704, -6.0132]; 
-% B{4}  = [-6; 
-%           7]; 
-% E{4}  = [ 0; 
-%           0]; 
-% Cz{4} = [ 0,  0]; 
-% Dz{4} = -1; 
-% Ez{4} = 0;
+% Vértice 3
+A{3}  = [-0.2970,  0.8907; 
+        -0.2970,  0.8907];
+B{3}  = [-1; 
+         -1]; 
+E{3}  = [ 0; 
+          0]; 
+Cz{3} = [ 0,  0]; 
+Dz{3} = 1; 
+Ez{3} = 0;
+
+% Vértice 4
+A{4}  = [-2.8903,  5.7876; 
+        0.9704, -6.0132]; 
+B{4}  = [-6; 
+          7]; 
+E{4}  = [ 0; 
+          0]; 
+Cz{4} = [ 0,  0]; 
+Dz{4} = -1; 
+Ez{4} = 0;
 
 disp('Sistema gerado com sucesso (Exemplo 3 completo - 4 vértices).');
 fprintf('\n');
@@ -79,6 +79,8 @@ if N == 2
 end
 
 H_table = [];
+K_list = {}; 
+sigma = 1;
 disp('Iniciando Teste de Síntese (Variando deg e degGamma)...');
 graus_gamma_teste = 0:5;
 
@@ -93,6 +95,14 @@ for deg = 1:5
         
         if out.feas == 1
             fprintf('Viável! (Tempo: %.2f s)\n', out.cpusec_s);
+            fprintf('Matriz de Ganho K_wc (deg=%d, d=%d):\n', deg, d);
+            disp(out.K_wc); 
+             % Verifica se o retorno é célula (MJLS) ou matriz (Politópico)
+            if iscell(out.K_wc)
+                K_list(end+1, 1:numel(out.K_wc)) = out.K_wc(:)'; 
+            else
+                K_list{end+1, 1} = out.K_wc; % Empacota a matriz em uma célula
+            end
             
             % Plota os resultados APENAS se N == 2
             if N == 2 && deg == 3
@@ -133,10 +143,17 @@ if isempty(H_table)
 else
     % Atualizando os nomes das colunas para incluir as novas métricas
     T_H = array2table(H_table, 'VariableNames', {'Grau_P', 'Grau_mu', 'Erro_Norma', 'Max_Gap', 'Min_Gap', 'Norma_Melhor_Caso', 'Norma_Pior_Caso', 'Variaveis', 'Linhas_LMI'});
+    % Distribui os ganhos na tabela automaticamente 
+    % Como K_list já é M x sigma, basta atribuir cada coluna
+    for m = 1:sigma
+        col_name = sprintf('K_wc_Mode%d', m);
+        T_H.(col_name) = K_list(:, m);
+    end
+    
     disp(T_H);
     
-%     writetable(T_H, 'teste_controle_Hinf_Ex3_Tabela.csv'); 
-    writetable(T_H, 'teste_controle_Hinf_Ex3_N2_Tabela.csv'); 
+    writetable(T_H, 'teste_controle_Hinf_Ex3_Tabela.csv'); 
+%     writetable(T_H, 'teste_controle_Hinf_Ex3_N2_Tabela.csv'); 
     fprintf('Tabela salva como teste_controle_Hinf_Ex3_Tabela.csv\n');
 end
 
