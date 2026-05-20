@@ -75,11 +75,12 @@ vetor_cor = ['r--'; 'b--'; 'g--'; 'c--'; 'm--'; 'k--'];
 if N == 2
     figure('Name', 'Síntese H_2: Custo Garantido vs Real', 'Color', 'w'); 
     hold on; grid on;
-    ylabel('H2'); 
+    ylabel('H_2'); 
     xlabel('\alpha');
 end
 
 H_table = [];
+Graph_Points = []; % Inicializa acumulador para exportação dos pontos do gráfico
 K_list = {}; 
 disp('Iniciando Teste de Síntese (Variando deg e degGamma)...');
 graus_gamma_teste = 0:5;
@@ -104,10 +105,16 @@ for deg = 1:5
             
             if N == 2 && deg == 3
                 cor_atual = vetor_cor(idx, 1);
+                % Extração dos dados padronizados
+                alpha_1 = out.alpha(:, 1);
+                custo_garantido = out.gcosts;
+                custo_real = out.realCosts;
                 plot(out.alpha(:, 1), out.realCosts, 'Color', cor_atual, 'LineStyle', '-', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
                 plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
+                % Acumula os pontos para exportação CSV
+                Graph_Points = [Graph_Points; alpha_1, repmat(d, size(alpha_1)), custo_garantido, custo_real];
             end
             
             erro_norma = norm(out.gcosts - out.realCosts);
@@ -143,6 +150,12 @@ else
 %     writetable(T_H, 'teste_controle_H2_Ex3_Tabela.csv'); 
     writetable(T_H, 'teste_controle_H2_Ex3_N2_Tabela.csv'); 
     fprintf('Tabela salva como teste_controle_H2_Ex3_N2_Tabela.csv\n');
+end
+
+if N == 2 && ~isempty(Graph_Points)
+    T_Points = array2table(Graph_Points, 'VariableNames', {'Alpha', 'Grau_rho', 'Custo_Garantido', 'Custo_Real'});
+    writetable(T_Points, 'teste_controle_H2_Ex3_N2_PontosGrafico.csv');
+    fprintf('Pontos do gráfico salvos como teste_controle_H2_MJLS_Ex7_N2_PontosGrafico.csv\n');
 end
 
 if N == 2 && ~isempty(H_table) 

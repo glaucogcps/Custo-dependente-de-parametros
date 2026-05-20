@@ -7,8 +7,8 @@ nx = 2;
 nu = 1; 
 nw = 1; 
 nz = 1; 
-N  = 4;
-% N = 2;
+% N  = 4;
+N = 2;
 
 fprintf('Parâmetros: nx=%d, nu=%d, nw=%d, nz=%d, Vértices N=%d.\n', nx, nu, nw, nz, N);
 
@@ -37,27 +37,27 @@ Cz{2} = [ 0.2,  0];
 Dz{2} = -1; 
 Ez{2} = 0;
 
-% Vértice 3
-A{3}  = [-0.2970,  0.8907; 
-        -0.2970,  0.8907];
-B{3}  = [-1; 
-         -1]; 
-E{3}  = [ 0; 
-          0]; 
-Cz{3} = [ 0,  0]; 
-Dz{3} = 1; 
-Ez{3} = 0;
-
-% Vértice 4
-A{4}  = [-2.8903,  5.7876; 
-        0.9704, -6.0132]; 
-B{4}  = [-6; 
-          7]; 
-E{4}  = [ 0; 
-          0]; 
-Cz{4} = [ 0,  0]; 
-Dz{4} = -1; 
-Ez{4} = 0;
+% % Vértice 3
+% A{3}  = [-0.2970,  0.8907; 
+%         -0.2970,  0.8907];
+% B{3}  = [-1; 
+%          -1]; 
+% E{3}  = [ 0; 
+%           0]; 
+% Cz{3} = [ 0,  0]; 
+% Dz{3} = 1; 
+% Ez{3} = 0;
+% 
+% % Vértice 4
+% A{4}  = [-2.8903,  5.7876; 
+%         0.9704, -6.0132]; 
+% B{4}  = [-6; 
+%           7]; 
+% E{4}  = [ 0; 
+%           0]; 
+% Cz{4} = [ 0,  0]; 
+% Dz{4} = -1; 
+% Ez{4} = 0;
 
 disp('Sistema gerado com sucesso (Exemplo 3 completo - 4 vértices).');
 fprintf('\n');
@@ -74,11 +74,12 @@ vetor_cor = ['r--'; 'b--'; 'g--'; 'c--'; 'm--'; 'k--'];
 if N == 2
     figure('Name', 'Síntese H_\infty: Custo Garantido vs Real', 'Color', 'w'); 
     hold on; grid on;
-    ylabel('Hinf'); 
+    ylabel('H_\infty'); 
     xlabel('\alpha');
 end
 
 H_table = [];
+Graph_Points = []; % Inicializa acumulador para exportação dos pontos do gráfico
 K_list = {}; 
 sigma = 1;
 disp('Iniciando Teste de Síntese (Variando deg e degGamma)...');
@@ -108,12 +109,17 @@ for deg = 1:5
             if N == 2 && deg == 3
                 % Extrai a cor atual
                 cor_atual = vetor_cor(idx, 1);
+                % Extração dos dados padronizados
+                alpha_1 = out.alpha(:, 1);
+                custo_garantido = out.gcosts;
+                custo_real = out.realCosts;
                 % Plota o Custo REAL usando apenas a primeira coluna de alpha (alpha_1)
                 plot(out.alpha(:, 1), out.realCosts, 'Color', cor_atual, 'LineStyle', '-', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
                 % Plota o Custo GARANTIDO usando apenas a primeira coluna de alpha (alpha_1)
                 plot(out.alpha(:, 1), out.gcosts, 'Color', cor_atual, 'LineStyle', '--', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d=%d', d));
+                Graph_Points = [Graph_Points; alpha_1, repmat(d, size(alpha_1)), custo_garantido, custo_real];
             end
             
             erro_norma = norm(out.gcosts - out.realCosts);
@@ -152,9 +158,15 @@ else
     
     disp(T_H);
     
-    writetable(T_H, 'teste_controle_Hinf_Ex3_Tabela.csv'); 
-%     writetable(T_H, 'teste_controle_Hinf_Ex3_N2_Tabela.csv'); 
+%     writetable(T_H, 'teste_controle_Hinf_Ex3_Tabela.csv'); 
+    writetable(T_H, 'teste_controle_Hinf_Ex3_N2_Tabela.csv'); 
     fprintf('Tabela salva como teste_controle_Hinf_Ex3_Tabela.csv\n');
+end
+
+if N == 2 && ~isempty(Graph_Points)
+    T_Points = array2table(Graph_Points, 'VariableNames', {'Alpha', 'Grau_rho', 'Custo_Garantido', 'Custo_Real'});
+    writetable(T_Points, 'teste_controle_Hinf_Ex3_N2_PontosGrafico.csv');
+    fprintf('Pontos do gráfico salvos como teste_controle_H2_MJLS_Ex7_N2_PontosGrafico.csv\n');
 end
 
 if N == 2 && ~isempty(H_table)

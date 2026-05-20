@@ -54,18 +54,20 @@ opt.solver = 'mosek';
 opt.op = 0;            % 0 = integral/média (rho polinomial)
 opt.hinf = 0;          % Minimizar a norma Hinf
 opt.tolerance = 1e-7;
-opt.indep = 1;
+opt.indep = 0;
 vetor_cor = ['r'; 'b'; 'g'; 'c'; 'm'; 'k'];
 
 %% 3. Teste: Variando o grau de P (deg) e degrho
 if N == 2
     figure('Name', 'Análise H_\infty MJLS: Custo Garantido vs Real', 'Color', 'w'); 
     hold on; grid on;
-    ylabel('H2'); 
+    ylabel('H_2'); 
     xlabel('\alpha');
 end
 
 H_table = [];
+Graph_Points = []; % Inicializa acumulador para exportação dos pontos do gráfico
+disp('Iniciando Teste de Análise (Variando deg e degrho)...');
 K_list = {}; % Inicializa lista 
 disp('Iniciando Teste de Análise (Variando deg e degrho)...');
 graus_rho_teste = 0:5; % Testando graus de 0 a 3 para a variável de custo rho
@@ -103,12 +105,15 @@ for deg = graus_P_teste
                 % Plota o Custo GARANTIDO (linha tracejada)
                 plot(alpha_1, custo_garantido, 'Color', cor_atual, 'LineStyle', '--', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d = %d', d));
-            end
             
+                % Acumula os pontos para exportação CSV
+                Graph_Points = [Graph_Points; alpha_1, repmat(d, size(alpha_1)), custo_garantido, custo_real];
+            end      
+           
             % Calcula métricas de erro (Gap entre garantido e real)
             custo_garantido = out.gcosts;
             custo_real = out.realCosts;
-            
+
             % Remove possíveis NaNs (caso o sistema real seja instável em algum ponto)
             idx_validos = ~isnan(custo_real);
             erro_norma = norm(custo_garantido(idx_validos) - custo_real(idx_validos));
@@ -148,17 +153,38 @@ else
     
     disp(T_H);
     
-%     writetable(T_H, 'teste_controle_H2_MJLS_Ex7_N2_Tabela.csv');
-    writetable(T_H, 'teste_controle_H2_MJLS_Ex7_N2_indep_Tabela.csv');
+    writetable(T_H, 'teste_controle_H2_MJLS_Ex7_N2_Tabela.csv');
+%     writetable(T_H, 'teste_controle_H2_MJLS_Ex7_N2_indep_Tabela.csv');
     fprintf('Tabela salva como teste_controle_Hinf_MJLS_Ex7_Tabela.csv\n');
 end
 
+if N == 2 && ~isempty(Graph_Points)
+    T_Points = array2table(Graph_Points, 'VariableNames', {'Alpha', 'Grau_rho', 'Custo_Garantido', 'Custo_Real'});
+    writetable(T_Points, 'teste_controle_H2_MJLS_Ex7_N2_PontosGrafico.csv');
+    fprintf('Pontos do gráfico salvos como teste_controle_H2_MJLS_Ex7_N2_PontosGrafico.csv\n');
+end
+
 if N == 2 && ~isempty(H_table)
-%     print('teste_controle_H2_MJLS_Ex7_N2_grafico', '-depsc'); 
-%     savefig('teste_controle_H2_MJLS_Ex7_N2_grafico.fig');
-    print('teste_controle_H2_MJLS_Ex7_N2_indep_grafico', '-depsc'); 
-    savefig('teste_controle_H2_MJLS_Ex7_N2_indep_grafico.fig');
+    print('teste_controle_H2_MJLS_Ex7_N2_grafico', '-depsc'); 
+    savefig('teste_controle_H2_MJLS_Ex7_N2_grafico.fig');
+%     print('teste_controle_H2_MJLS_Ex7_N2_indep_grafico', '-depsc'); 
+%     savefig('teste_controle_H2_MJLS_Ex7_N2_indep_grafico.fig');
     fprintf('Gráfico salvo como teste_controle_H2_MJLS_Ex3_grafico.eps e teste_controle_Hinf_MJLS_Ex3_grafico.fig\n');
+
+%     % 1. Otimização do arquivo (essencial para evitar erro de memória no LaTeX)
+%     % Isso remove pontos sobrepostos que não alteram o visual do gráfico.
+%     cleanfigure();
+% 
+%     % 2. Exportação ajustada para o template IEEE
+%     matlab2tikz('teste_controle_H2_MJLS_Ex7_N2_grafico.tex', ...
+%         'width', '\columnwidth', ...      % Ajusta a largura para 1 coluna do template
+%         'height', '0.75\columnwidth', ...  % Define uma proporção de aspecto (ex: 4:3)
+%         'strictEntities', true, ...        % Melhora a conversão de caracteres especiais
+%         'extraAxisOptions', [ ...          % Garante que a fonte do gráfico seja adequada
+%             'font=\footnotesize', ...      % Tamanho padrão para legendas IEEE
+%             'tick label style={font=\footnotesize}' ...
+%         ]);
+
 end
 
 fprintf('Teste concluído.\n');

@@ -61,11 +61,12 @@ vetor_cor = ['r'; 'b'; 'g'; 'c'; 'm'; 'k'];
 if N == 2
     figure('Name', 'Análise H_\infty MJLS: Custo Garantido vs Real', 'Color', 'w'); 
     hold on; grid on;
-    ylabel('Hinf'); 
+    ylabel('H_\infty'); 
     xlabel('\alpha');
 end
 
 H_table = [];
+Graph_Points = []; % Inicializa acumulador para exportação dos pontos do gráfico
 K_list = {}; % Inicializa lista 
 disp('Iniciando Teste de Análise (Variando deg e degrho)...');
 
@@ -104,6 +105,8 @@ for deg = graus_P_teste
                 % Plota o Custo GARANTIDO (linha tracejada)
                 plot(alpha_1, custo_garantido, 'Color', cor_atual, 'LineStyle', '--', ...
                     'LineWidth', 1.5, 'DisplayName', sprintf('d = %d', d));
+                % Acumula os pontos para exportação CSV
+                Graph_Points = [Graph_Points; alpha_1, repmat(d, size(alpha_1)), custo_garantido, custo_real];
             end
             
             % Calcula métricas de erro (Gap entre garantido e real)
@@ -154,6 +157,13 @@ else
 %     writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_Tabela.csv');
     writetable(T_H, 'teste_controle_Hinf_MJLS_Ex7_N2_indep_Tabela.csv');
     fprintf('Tabela salva como teste_controle_Hinf_MJLS_Ex7_Tabela.csv\n');
+end
+
+if N == 2 && ~isempty(Graph_Points)
+    T_Points = array2table(Graph_Points, 'VariableNames', {'Alpha', 'Grau_rho', 'Custo_Garantido', 'Custo_Real'});
+%     writetable(T_Points, 'teste_controle_Hinf_MJLS_Ex7_N2_PontosGrafico.csv');
+    writetable(T_Points, 'teste_controle_Hinf_MJLS_Ex7_N2_indep_PontosGrafico.csv');
+    fprintf('Pontos do gráfico salvos como teste_controle_H2_MJLS_Ex7_N2_PontosGrafico.csv\n');
 end
 
 if N == 2 && ~isempty(H_table)
