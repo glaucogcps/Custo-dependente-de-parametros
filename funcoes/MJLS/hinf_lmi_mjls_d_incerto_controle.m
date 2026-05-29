@@ -295,6 +295,9 @@ if p > -options.tolerance
     Ezcl = cell(1, sigma);
     
     for i=1:sigma
+        if sum(isnan(output.K{i}))
+            output.K{i} = zeros(nu, nx);
+        end
         Acl{i} = A{i} + B{i}*output.K{i};
         Ecl{i} = E{i};
         Ccl{i} = Cz{i} + Dz{i}*output.K{i};
